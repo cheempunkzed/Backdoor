@@ -1,28 +1,79 @@
 package com.example.backdoor.filesystem
 
 sealed class VFSNode {
-    abstract val name: String
-    abstract val path: String
-    abstract val parentPath: String
-    abstract val permissions: String
-    abstract val createdTime: Long
+    abstract val metadata: VFSMetadata
+    val name: String get() = metadata.name
+    val path: String get() = metadata.path
+    val parentPath: String get() = metadata.parentPath
+    val permissions: String get() = metadata.permissions
+    val createdTime: Long get() = metadata.createdTimestamp
 
     data class Directory(
-        override val name: String,
-        override val path: String,
-        override val parentPath: String,
-        override val permissions: String = "drwxr-xr-x",
-        override val createdTime: Long = System.currentTimeMillis(),
+        override val metadata: VFSMetadata,
         val children: MutableList<VFSNode> = mutableListOf()
-    ) : VFSNode()
+    ) : VFSNode() {
+        constructor(
+            name: String,
+            path: String,
+            parentPath: String,
+            permissions: String = "drwxr-xr-x",
+            createdTime: Long = System.currentTimeMillis(),
+            owner: String = "root",
+            isSystemProtected: Boolean = false,
+            inTrash: Boolean = false,
+            originalPath: String? = null
+        ) : this(
+            metadata = VFSMetadata(
+                name = name,
+                path = path,
+                parentPath = parentPath,
+                fileType = VFSFileType.DIRECTORY,
+                sizeBytes = 0L,
+                createdTimestamp = createdTime,
+                modifiedTimestamp = createdTime,
+                owner = owner,
+                permissions = permissions,
+                isSystemProtected = isSystemProtected,
+                inTrash = inTrash,
+                originalPath = originalPath
+            )
+        )
+    }
 
     data class File(
-        override val name: String,
-        override val path: String,
-        override val parentPath: String,
-        override val permissions: String = "-rw-r--r--",
-        override val createdTime: Long = System.currentTimeMillis(),
+        override val metadata: VFSMetadata,
         var content: String = "",
         val isExecutable: Boolean = false
-    ) : VFSNode()
+    ) : VFSNode() {
+        constructor(
+            name: String,
+            path: String,
+            parentPath: String,
+            permissions: String = "-rw-r--r--",
+            createdTime: Long = System.currentTimeMillis(),
+            content: String = "",
+            isExecutable: Boolean = false,
+            owner: String = "root",
+            isSystemProtected: Boolean = false,
+            inTrash: Boolean = false,
+            originalPath: String? = null
+        ) : this(
+            metadata = VFSMetadata(
+                name = name,
+                path = path,
+                parentPath = parentPath,
+                fileType = VFSFileType.fromFileName(name, false),
+                sizeBytes = content.toByteArray().size.toLong(),
+                createdTimestamp = createdTime,
+                modifiedTimestamp = createdTime,
+                owner = owner,
+                permissions = permissions,
+                isSystemProtected = isSystemProtected,
+                inTrash = inTrash,
+                originalPath = originalPath
+            ),
+            content = content,
+            isExecutable = isExecutable
+        )
+    }
 }

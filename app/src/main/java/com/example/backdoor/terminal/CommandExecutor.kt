@@ -3,14 +3,22 @@ package com.example.backdoor.terminal
 import com.example.backdoor.terminal.commands.CatCommand
 import com.example.backdoor.terminal.commands.CdCommand
 import com.example.backdoor.terminal.commands.ClearCommand
+import com.example.backdoor.terminal.commands.CpCommand
 import com.example.backdoor.terminal.commands.DateCommand
 import com.example.backdoor.terminal.commands.EchoCommand
 import com.example.backdoor.terminal.commands.ExitCommand
+import com.example.backdoor.terminal.commands.FindCommand
 import com.example.backdoor.terminal.commands.HelpCommand
 import com.example.backdoor.terminal.commands.HostnameCommand
 import com.example.backdoor.terminal.commands.LsCommand
+import com.example.backdoor.terminal.commands.MkdirCommand
+import com.example.backdoor.terminal.commands.MvCommand
+import com.example.backdoor.terminal.commands.OpenCommand
 import com.example.backdoor.terminal.commands.PwdCommand
+import com.example.backdoor.terminal.commands.RenameCommand
+import com.example.backdoor.terminal.commands.RmCommand
 import com.example.backdoor.terminal.commands.TimeCommand
+import com.example.backdoor.terminal.commands.TouchCommand
 import com.example.backdoor.terminal.commands.TreeCommand
 import com.example.backdoor.terminal.commands.VersionCommand
 import com.example.backdoor.terminal.commands.WhoAmICommand
@@ -21,7 +29,7 @@ class CommandRegistry {
     private val commands = mutableMapOf<String, Command>()
 
     init {
-        // Register default required Stage 1 commands
+        // Register default required commands
         registerCommand(HelpCommand())
         registerCommand(ClearCommand())
         registerCommand(EchoCommand())
@@ -36,6 +44,14 @@ class CommandRegistry {
         registerCommand(ExitCommand())
         registerCommand(CdCommand())
         registerCommand(CatCommand())
+        registerCommand(MkdirCommand())
+        registerCommand(TouchCommand())
+        registerCommand(RmCommand())
+        registerCommand(MvCommand())
+        registerCommand(CpCommand())
+        registerCommand(FindCommand())
+        registerCommand(OpenCommand())
+        registerCommand(RenameCommand())
     }
 
     fun registerCommand(command: Command) {

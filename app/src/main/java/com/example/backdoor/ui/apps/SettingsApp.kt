@@ -294,6 +294,30 @@ fun SettingsApp(
             }
         }
 
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Section: About System
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(6.dp))
+                .background(AbyssSurface)
+                .padding(12.dp)
+        ) {
+            Text(
+                text = "ABOUT SYSTEM",
+                color = TextPrimary,
+                fontSize = 12.sp,
+                fontFamily = FontFamily.Monospace,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(text = "OS Name: AbyssOS", color = accentColor, fontSize = 12.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+            Text(text = "Version: 0.2.0 (AbyssFS Stage 3)", color = TextPrimary, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+            Text(text = "Filesystem: AbyssFS Virtual File System V2 (Persistent)", color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+            Text(text = "Kernel Build: #2049-STAGE3-RELEASE", color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+        }
+
         Spacer(modifier = Modifier.height(20.dp))
 
         // Danger Zone: System Reset

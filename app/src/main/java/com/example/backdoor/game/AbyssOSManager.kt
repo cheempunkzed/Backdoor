@@ -86,15 +86,30 @@ class AbyssOSManager(
     private var tickerJob: Job? = null
 
     init {
-        addSystemLog("KERNEL", "AbyssOS Manager initialized.", LogLevel.INFO)
+        addSystemLog("KERNEL", "AbyssOS 0.2.0 Manager initialized.", LogLevel.INFO)
         startStatusTicker()
 
         scope.launch {
             val profile = saveManager.getUserProfile()
             _userProfile.value = profile
+
+            // Restore saved VFS JSON state
+            val vfsJson = saveManager.getVfsDataJson()
+            if (!vfsJson.isNullOrEmpty()) {
+                vfs.deserializeFromJson(vfsJson, profile?.username ?: "operator")
+            }
+
             if (profile != null) {
                 settingsRepository.updateUserHandle(profile.username)
                 setupUserVfsDirectory(profile.username)
+            }
+        }
+
+        // Auto-save VFS state on changes
+        scope.launch {
+            vfs.updateEvent.collect {
+                val json = vfs.serializeToJson()
+                saveManager.saveVfsDataJson(json)
             }
         }
     }
@@ -106,15 +121,15 @@ class AbyssOSManager(
         scope.launch {
             val lines = listOf(
                 "AbyssOS Boot Sequence",
-                "Version 0.1 Alpha",
+                "Version 0.2.0",
                 "",
                 "Initializing Kernel...",
                 "Loading Virtual Memory...",
-                "Mounting Virtual File System...",
+                "Mounting AbyssFS Virtual File System...",
                 "Starting Network Stack...",
                 "Loading Security Modules...",
-                "Initializing Terminal...",
-                "Verifying System Integrity...",
+                "Initializing Terminal & Commands...",
+                "Verifying File System Integrity...",
                 "Launching Desktop Environment...",
                 "",
                 "Boot completed successfully."
@@ -246,20 +261,7 @@ class AbyssOSManager(
     }
 
     private fun setupUserVfsDirectory(username: String) {
-        val userHome = "/home/$username"
-        vfs.createDirectory("/home", username)
-        vfs.createDirectory(userHome, "desktop")
-        vfs.createDirectory(userHome, "downloads")
-        vfs.createDirectory(userHome, "logs")
-        vfs.createDirectory(userHome, "documents")
-
-        vfs.createFile(
-            dirPath = userHome,
-            fileName = "welcome.txt",
-            content = "AbyssOS 0.1 Alpha User Node\nUser: $username\nSystem ID: #2049-ABYSS\nStatus: Active.",
-            isExecutable = false
-        )
-        vfs.changeDirectory(userHome)
+        vfs.setupUserHome(username)
     }
 
     fun openApp(app: OsApp) {

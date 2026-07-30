@@ -15,6 +15,9 @@ interface SaveManager {
 
     suspend fun getTerminalHistory(): List<String>
     suspend fun saveTerminalHistory(history: List<String>): Boolean
+
+    suspend fun getVfsDataJson(): String?
+    suspend fun saveVfsDataJson(json: String): Boolean
 }
 
 class MemorySaveManager(
@@ -23,6 +26,7 @@ class MemorySaveManager(
 
     private var storedProfile: UserProfile? = null
     private val storedTerminalHistory = mutableListOf<String>()
+    private var storedVfsJson: String? = null
 
     private val _currentSave = MutableStateFlow<SaveSlotEntity?>(
         SaveSlotEntity(
@@ -30,19 +34,21 @@ class MemorySaveManager(
             saveName = "AbyssOS Default Profile",
             timestamp = System.currentTimeMillis(),
             playerHandle = "operator",
-            osVersion = "0.1 Alpha"
+            osVersion = "0.2.0"
         )
     )
     override val currentSaveState: Flow<SaveSlotEntity?> = _currentSave.asStateFlow()
 
     override suspend fun saveGame(slotId: Int, saveName: String): Boolean {
+        val currentSlot = _currentSave.value
         val newSave = SaveSlotEntity(
             slotId = slotId,
             saveName = saveName,
             timestamp = System.currentTimeMillis(),
-            playTimeSeconds = (_currentSave.value?.playTimeSeconds ?: 0L) + 60L,
-            playerHandle = storedProfile?.username ?: "operator",
-            osVersion = "0.1 Alpha"
+            playTimeSeconds = (currentSlot?.playTimeSeconds ?: 0L) + 60L,
+            playerHandle = storedProfile?.username ?: currentSlot?.playerHandle ?: "operator",
+            osVersion = "0.2.0",
+            vfsDataJson = storedVfsJson ?: currentSlot?.vfsDataJson ?: ""
         )
         _currentSave.value = newSave
         saveDao?.insertSaveSlot(newSave)
@@ -53,6 +59,9 @@ class MemorySaveManager(
         val loaded = saveDao?.getSaveSlotById(slotId) ?: _currentSave.value
         if (loaded != null) {
             _currentSave.value = loaded
+            if (loaded.vfsDataJson.isNotEmpty()) {
+                storedVfsJson = loaded.vfsDataJson
+            }
         }
         return loaded
     }
@@ -60,13 +69,14 @@ class MemorySaveManager(
     override suspend fun resetGameData(): Boolean {
         storedProfile = null
         storedTerminalHistory.clear()
+        storedVfsJson = null
         val resetSave = SaveSlotEntity(
             slotId = 1,
             saveName = "New Operator Session",
             timestamp = System.currentTimeMillis(),
             playTimeSeconds = 0L,
             playerHandle = "operator",
-            osVersion = "0.1 Alpha"
+            osVersion = "0.2.0"
         )
         _currentSave.value = resetSave
         saveDao?.deleteSaveSlot(1)
@@ -91,6 +101,16 @@ class MemorySaveManager(
     override suspend fun saveTerminalHistory(history: List<String>): Boolean {
         storedTerminalHistory.clear()
         storedTerminalHistory.addAll(history.takeLast(100))
+        return true
+    }
+
+    override suspend fun getVfsDataJson(): String? {
+        return storedVfsJson ?: _currentSave.value?.vfsDataJson
+    }
+
+    override suspend fun saveVfsDataJson(json: String): Boolean {
+        storedVfsJson = json
+        _currentSave.value = _currentSave.value?.copy(vfsDataJson = json)
         return true
     }
 }

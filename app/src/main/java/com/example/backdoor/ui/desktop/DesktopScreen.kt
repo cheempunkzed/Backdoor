@@ -160,7 +160,7 @@ fun DesktopScreen(
                         ) {
                             when (app) {
                                 OsApp.TERMINAL -> TerminalApp(osManager = osManager, accentColor = accentColor)
-                                OsApp.FILES -> FilesApp(vfs = osManager.vfs, accentColor = accentColor)
+                                OsApp.FILES -> FilesApp(osManager = osManager, accentColor = accentColor)
                                 OsApp.SETTINGS -> SettingsApp(osManager = osManager, accentColor = accentColor)
                                 OsApp.SYSTEM_MONITOR -> SystemMonitorApp(osManager = osManager, accentColor = accentColor)
                                 OsApp.LOGS -> LogsApp(osManager = osManager, accentColor = accentColor)
@@ -285,7 +285,7 @@ private fun LandscapeSideWidget(
 
         WidgetDetailRow("NODE ID", status.hostname)
         WidgetDetailRow("OPERATOR", status.userHandle)
-        WidgetDetailRow("KERNEL", "0.0.1-BACKDOOR")
+        WidgetDetailRow("KERNEL", "0.2.0-AbyssFS")
         WidgetDetailRow("UPTIME", "${status.uptimeSeconds}s")
         WidgetDetailRow("MEMORY", "${status.usedRamMb}MB")
 

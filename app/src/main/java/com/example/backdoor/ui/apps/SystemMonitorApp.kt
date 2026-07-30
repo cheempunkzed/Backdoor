@@ -72,7 +72,7 @@ fun SystemMonitorApp(
             .padding(10.dp)
     ) {
         Text(
-            text = "=== SYSTEM MONITOR ===",
+            text = "=== SYSTEM MONITOR | AbyssOS 0.2.0 ===",
             color = accentColor,
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
