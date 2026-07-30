@@ -1,0 +1,6 @@
+{
+  "name": "Backdoor",
+  "description": "Cyber security simulation game with virtual OS AbyssOS.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
