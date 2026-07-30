@@ -1,6 +1,10 @@
 package com.example.backdoor.ui.components
 
-import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -17,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.BatteryStd
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.SignalCellular4Bar
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Icon
@@ -26,6 +31,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
@@ -46,86 +52,97 @@ fun TopStatusBar(
     accentColor: Color = TechPurple,
     modifier: Modifier = Modifier
 ) {
-    val statusColor by animateColorAsState(
-        targetValue = if (systemStatus.isWifiConnected) StatusConnected else TextMuted,
-        label = "statusColor"
+    // Soft pulsing glow transition for shield
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.4f,
+        targetValue = 0.95f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2200),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "shieldPulse"
     )
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(36.dp)
-            .background(Color.Black.copy(alpha = 0.5f))
+            .height(34.dp)
+            .background(Color.Black.copy(alpha = 0.65f))
             .border(width = (0.5).dp, color = Color.White.copy(alpha = 0.08f))
-            .padding(horizontal = 14.dp)
+            .padding(horizontal = 12.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left: Title & Status Glow Indicator
+            // Left: Title & Soft Pulsing Shield Icon
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "AbyssOS 0.0.1",
-                    color = TechPurple,
+                    text = "AbyssOS 0.3.0",
+                    color = accentColor,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = FontFamily.Monospace,
-                    letterSpacing = 1.sp
+                    letterSpacing = 0.8.sp
                 )
+
+                // Soft Minimal Pulsing Shield Icon
                 Box(
                     modifier = Modifier
-                        .size(6.dp)
+                        .size(18.dp)
                         .clip(CircleShape)
-                        .background(StatusConnected)
-                )
-            }
-
-            // Right: Status Badges, VPN Indicator, Signal, Battery, Time
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // VPN Status
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "VPN ",
-                        color = TextMuted,
-                        fontSize = 10.sp,
-                        fontFamily = FontFamily.Monospace
-                    )
-                    Text(
-                        text = "SECURED",
-                        color = StatusConnected,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Monospace
+                        .background(StatusConnected.copy(alpha = 0.12f * pulseAlpha)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Security,
+                        contentDescription = "Secured",
+                        tint = StatusConnected,
+                        modifier = Modifier
+                            .size(12.dp)
+                            .alpha(pulseAlpha)
                     )
                 }
+            }
+
+            // Right: Metrics - CPU, RAM, Network, Battery, Clock, Date
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // CPU Metric
+                Text(
+                    text = "CPU ${systemStatus.cpuUsagePercent}%",
+                    color = TextMuted,
+                    fontSize = 10.sp,
+                    fontFamily = FontFamily.Monospace
+                )
+
+                // RAM Metric
+                Text(
+                    text = "RAM ${systemStatus.ramUsagePercent}%",
+                    color = TextMuted,
+                    fontSize = 10.sp,
+                    fontFamily = FontFamily.Monospace
+                )
 
                 // Network Signal
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Default.Wifi,
                         contentDescription = "Wi-Fi",
-                        tint = statusColor,
-                        modifier = Modifier.size(12.dp)
-                    )
-                    Spacer(modifier = Modifier.width(3.dp))
-                    Icon(
-                        imageVector = Icons.Default.SignalCellular4Bar,
-                        contentDescription = "Signal",
-                        tint = TextPrimary.copy(alpha = 0.8f),
+                        tint = if (systemStatus.isWifiConnected) accentColor else TextMuted,
                         modifier = Modifier.size(12.dp)
                     )
                     Spacer(modifier = Modifier.width(2.dp))
                     Text(
-                        text = "LTE",
-                        color = TextPrimary.copy(alpha = 0.8f),
+                        text = "NET",
+                        color = TextPrimary,
                         fontSize = 10.sp,
                         fontFamily = FontFamily.Monospace
                     )
@@ -139,21 +156,21 @@ fun TopStatusBar(
                         fontSize = 10.sp,
                         fontFamily = FontFamily.Monospace
                     )
-                    Spacer(modifier = Modifier.width(3.dp))
+                    Spacer(modifier = Modifier.width(2.dp))
                     Icon(
                         imageVector = if (systemStatus.isCharging) Icons.Default.BatteryChargingFull else Icons.Default.BatteryStd,
                         contentDescription = "Battery",
                         tint = if (systemStatus.batteryPercent < 20) MaterialTheme.colorScheme.error else TextPrimary,
-                        modifier = Modifier.size(13.dp)
+                        modifier = Modifier.size(12.dp)
                     )
                 }
 
-                // Time
+                // Clock & Date
                 Text(
-                    text = timeString,
+                    text = "$timeString  |  $dateString",
                     color = TextPrimary,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold,
                     fontFamily = FontFamily.Monospace
                 )
             }

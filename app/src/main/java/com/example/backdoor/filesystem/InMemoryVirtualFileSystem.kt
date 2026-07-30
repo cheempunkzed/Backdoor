@@ -59,7 +59,7 @@ class InMemoryVirtualFileSystem : VirtualFileSystem {
         createFileInternal(
             dirPath = "/system",
             fileName = "os.build",
-            content = "BUILD_NAME=AbyssOS\nVERSION=0.2.0\nCODENAME=ABYSSFS_ENGINE",
+            content = "BUILD_NAME=AbyssOS\nVERSION=0.3.0\nCODENAME=DESKTOP_ENV_V2",
             isExecutable = false,
             owner = "root",
             isProtected = true
@@ -68,7 +68,7 @@ class InMemoryVirtualFileSystem : VirtualFileSystem {
         createFileInternal(
             dirPath = "/system",
             fileName = "kernel.sys",
-            content = "[KERNEL] AbyssOS v0.2.0 Core Active.\n[MODULE] AbyssFS Filesystem V2 Mounted.",
+            content = "[KERNEL] AbyssOS v0.3.0 Core Active.\n[MODULE] Desktop Environment 2.0 & Process Manager Loaded.",
             isExecutable = false,
             owner = "root",
             isProtected = true
@@ -77,7 +77,7 @@ class InMemoryVirtualFileSystem : VirtualFileSystem {
         createFileInternal(
             dirPath = "/logs",
             fileName = "boot.log",
-            content = "[INFO] AbyssOS 0.2.0 Kernel initialized successfully.\n[INFO] AbyssFS Mounted.\n[INFO] Services status: OK.",
+            content = "[INFO] AbyssOS 0.3.0 Kernel initialized successfully.\n[INFO] AbyssFS Mounted.\n[INFO] Process Manager & DE 2.0 active.",
             isExecutable = false,
             owner = "system"
         )
@@ -138,7 +138,7 @@ class InMemoryVirtualFileSystem : VirtualFileSystem {
             createFileInternal(
                 dirPath = "$userHomePath/Notes",
                 fileName = "welcome.txt",
-                content = "Welcome to AbyssOS 0.2.0 with AbyssFS Virtual Filesystem.\n" +
+                content = "Welcome to AbyssOS 0.3.0 with AbyssFS Virtual Filesystem & Desktop 2.0.\n" +
                         "Commands supported: cd, mkdir, touch, rm, mv, cp, cat, pwd, ls, tree, find, open, rename.\n" +
                         "Files deleted in user space move to Trash and can be restored.",
                 owner = username

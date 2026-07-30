@@ -3,7 +3,7 @@ package com.example.backdoor.filesystem
 import kotlinx.coroutines.flow.StateFlow
 
 interface VirtualFileSystem {
-    val version: String get() = "0.2.0"
+    val version: String get() = "0.3.0"
     val updateEvent: StateFlow<Long>
 
     fun getCwd(): String

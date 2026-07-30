@@ -18,6 +18,12 @@ interface SaveManager {
 
     suspend fun getVfsDataJson(): String?
     suspend fun saveVfsDataJson(json: String): Boolean
+
+    suspend fun getDockPinnedAppsJson(): String?
+    suspend fun saveDockPinnedAppsJson(json: String): Boolean
+
+    suspend fun getDesktopPositionsJson(): String?
+    suspend fun saveDesktopPositionsJson(json: String): Boolean
 }
 
 class MemorySaveManager(
@@ -27,6 +33,8 @@ class MemorySaveManager(
     private var storedProfile: UserProfile? = null
     private val storedTerminalHistory = mutableListOf<String>()
     private var storedVfsJson: String? = null
+    private var storedDockJson: String? = null
+    private var storedDesktopJson: String? = null
 
     private val _currentSave = MutableStateFlow<SaveSlotEntity?>(
         SaveSlotEntity(
@@ -34,7 +42,7 @@ class MemorySaveManager(
             saveName = "AbyssOS Default Profile",
             timestamp = System.currentTimeMillis(),
             playerHandle = "operator",
-            osVersion = "0.2.0"
+            osVersion = "0.3.0"
         )
     )
     override val currentSaveState: Flow<SaveSlotEntity?> = _currentSave.asStateFlow()
@@ -47,7 +55,7 @@ class MemorySaveManager(
             timestamp = System.currentTimeMillis(),
             playTimeSeconds = (currentSlot?.playTimeSeconds ?: 0L) + 60L,
             playerHandle = storedProfile?.username ?: currentSlot?.playerHandle ?: "operator",
-            osVersion = "0.2.0",
+            osVersion = "0.3.0",
             vfsDataJson = storedVfsJson ?: currentSlot?.vfsDataJson ?: ""
         )
         _currentSave.value = newSave
@@ -70,13 +78,15 @@ class MemorySaveManager(
         storedProfile = null
         storedTerminalHistory.clear()
         storedVfsJson = null
+        storedDockJson = null
+        storedDesktopJson = null
         val resetSave = SaveSlotEntity(
             slotId = 1,
             saveName = "New Operator Session",
             timestamp = System.currentTimeMillis(),
             playTimeSeconds = 0L,
             playerHandle = "operator",
-            osVersion = "0.2.0"
+            osVersion = "0.3.0"
         )
         _currentSave.value = resetSave
         saveDao?.deleteSaveSlot(1)
@@ -111,6 +121,24 @@ class MemorySaveManager(
     override suspend fun saveVfsDataJson(json: String): Boolean {
         storedVfsJson = json
         _currentSave.value = _currentSave.value?.copy(vfsDataJson = json)
+        return true
+    }
+
+    override suspend fun getDockPinnedAppsJson(): String? {
+        return storedDockJson
+    }
+
+    override suspend fun saveDockPinnedAppsJson(json: String): Boolean {
+        storedDockJson = json
+        return true
+    }
+
+    override suspend fun getDesktopPositionsJson(): String? {
+        return storedDesktopJson
+    }
+
+    override suspend fun saveDesktopPositionsJson(json: String): Boolean {
+        storedDesktopJson = json
         return true
     }
 }

@@ -1,11 +1,16 @@
 package com.example.backdoor.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,20 +21,27 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.ListAlt
 import androidx.compose.material.icons.filled.Monitor
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.WifiTethering
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontFamily
@@ -41,120 +53,187 @@ import com.example.ui.theme.TechPurple
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun BottomDock(
-    activeApp: OsApp?,
+    pinnedApps: List<OsApp>,
+    openApps: List<OsApp>,
+    focusedApp: OsApp?,
     onAppClick: (OsApp) -> Unit,
+    onPinApp: (OsApp) -> Unit,
+    onUnpinApp: (OsApp) -> Unit,
+    onCloseApp: (OsApp) -> Unit,
     accentColor: Color = TechPurple,
     modifier: Modifier = Modifier
 ) {
+    var contextMenuApp by remember { mutableStateOf<OsApp?>(null) }
+
+    // Combine pinned apps and running non-pinned apps
+    val dockApps = (pinnedApps + openApps).distinct()
+
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 12.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center
     ) {
-        // Floating Pill Container
+        // Larger, more readable Dock Container
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
-                .clip(RoundedCornerShape(28.dp))
-                .background(AbyssSurface.copy(alpha = 0.9f))
+                .clip(RoundedCornerShape(24.dp))
+                .background(AbyssSurface.copy(alpha = 0.94f))
                 .border(
                     width = 1.dp,
-                    color = Color.White.copy(alpha = 0.12f),
-                    shape = RoundedCornerShape(28.dp)
+                    color = accentColor.copy(alpha = 0.25f),
+                    shape = RoundedCornerShape(24.dp)
                 )
-                .padding(horizontal = 12.dp)
+                .padding(horizontal = 14.dp, vertical = 6.dp)
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Quick App Launch Icons
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    OsApp.entries.forEach { app ->
-                        DockAppIcon(
+                if (dockApps.isEmpty()) {
+                    Text(
+                        text = "[ Dock Empty - Long Press App on Desktop to Pin ]",
+                        color = TextMuted,
+                        fontSize = 11.sp,
+                        fontFamily = FontFamily.Monospace,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                } else {
+                    dockApps.forEach { app ->
+                        val isPinned = pinnedApps.contains(app)
+                        val isOpen = openApps.contains(app)
+                        val isFocused = focusedApp == app
+
+                        DockItemIcon(
                             app = app,
-                            isActive = activeApp == app,
+                            isOpen = isOpen,
+                            isFocused = isFocused,
+                            isPinned = isPinned,
                             accentColor = accentColor,
-                            onClick = { onAppClick(app) }
-                        )
-                    }
-                }
-
-                // Active App Title / Standby Indicator
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(start = 8.dp)
-                ) {
-                    AnimatedVisibility(visible = activeApp != null) {
-                        Row(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(accentColor.copy(alpha = 0.15f))
-                                .border(0.5.dp, accentColor.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
-                                .padding(horizontal = 10.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(6.dp)
-                                    .clip(CircleShape)
-                                    .background(accentColor)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = activeApp?.appName ?: "",
-                                color = TextPrimary,
-                                fontSize = 11.sp,
-                                fontFamily = FontFamily.Monospace
-                            )
-                        }
-                    }
-
-                    if (activeApp == null) {
-                        Text(
-                            text = "Standby",
-                            color = TextMuted,
-                            fontSize = 10.sp,
-                            fontFamily = FontFamily.Monospace
+                            onClick = { onAppClick(app) },
+                            onLongClick = { contextMenuApp = app }
                         )
                     }
                 }
             }
         }
+
+        // Context Menu for Dock Icon
+        val targetApp = contextMenuApp
+        if (targetApp != null) {
+            val isPinned = pinnedApps.contains(targetApp)
+            val isOpen = openApps.contains(targetApp)
+
+            ContextMenuPopup(
+                visible = true,
+                onDismissRequest = { contextMenuApp = null },
+                title = targetApp.appName,
+                accentColor = accentColor,
+                items = buildList {
+                    if (isPinned) {
+                        add(
+                            ContextMenuItem(
+                                label = "Unpin from Dock",
+                                icon = Icons.Default.PushPin,
+                                onClick = { onUnpinApp(targetApp) }
+                            )
+                        )
+                    } else {
+                        add(
+                            ContextMenuItem(
+                                label = "Pin to Dock",
+                                icon = Icons.Default.PushPin,
+                                onClick = { onPinApp(targetApp) }
+                            )
+                        )
+                    }
+                    if (isOpen) {
+                        add(
+                            ContextMenuItem(
+                                label = "Close App",
+                                icon = Icons.Default.Close,
+                                isDanger = true,
+                                onClick = { onCloseApp(targetApp) }
+                            )
+                        )
+                    }
+                }
+            )
+        }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun DockAppIcon(
+private fun DockItemIcon(
     app: OsApp,
-    isActive: Boolean,
+    isOpen: Boolean,
+    isFocused: Boolean,
+    isPinned: Boolean,
     accentColor: Color,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
 ) {
-    val icon = getAppIconVector(app)
+    val scale by animateFloatAsState(
+        targetValue = if (isFocused) 1.1f else 1.0f,
+        animationSpec = spring(stiffness = 300f),
+        label = "dockIconScale"
+    )
 
-    Box(
-        modifier = Modifier
-            .size(38.dp)
-            .clip(CircleShape)
-            .background(if (isActive) accentColor.copy(alpha = 0.25f) else Color.White.copy(alpha = 0.05f))
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
+    val bgColor by animateColorAsState(
+        targetValue = when {
+            isFocused -> accentColor.copy(alpha = 0.28f)
+            isOpen -> Color.White.copy(alpha = 0.12f)
+            else -> Color.Transparent
+        },
+        label = "dockIconBg"
+    )
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.scale(scale)
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = app.appName,
-            tint = if (isActive) accentColor else TextPrimary.copy(alpha = 0.7f),
-            modifier = Modifier.size(18.dp)
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(bgColor)
+                .border(
+                    width = if (isFocused) 1.dp else 0.5.dp,
+                    color = if (isFocused) accentColor else Color.White.copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(12.dp)
+                )
+                .combinedClickable(
+                    onClick = onClick,
+                    onLongClick = onLongClick
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = getAppIconVector(app),
+                contentDescription = app.appName,
+                tint = if (isFocused) accentColor else if (isOpen) TextPrimary else TextMuted,
+                modifier = Modifier.size(22.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(2.dp))
+
+        // Running Indicator Dot
+        Box(
+            modifier = Modifier
+                .size(4.dp)
+                .clip(CircleShape)
+                .background(
+                    when {
+                        isFocused -> accentColor
+                        isOpen -> Color.White.copy(alpha = 0.7f)
+                        else -> Color.Transparent
+                    }
+                )
         )
     }
 }

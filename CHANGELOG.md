@@ -1,5 +1,20 @@
 # AbyssOS Changelog
 
+## [0.3.0] - 2026-07-30
+### Stage 4: Desktop Environment 2.0 + Process Manager
+#### Added
+- **True Immersive Fullscreen**: Hidden Android status bar & gesture navigation using `WindowInsetsControllerCompat`.
+- **Process Manager Engine**: Real virtual process kernel (`ProcessManager`) tracking PIDs, status, CPU %, RAM MB, uptime, and daemon protection.
+- **Multi-Window Support**: Window Manager (`WindowManager`) supporting multiple open windows simultaneously with zIndex stacking, focus, minimize, restore, and drag-repositioning.
+- **Redesigned Files App**: Dual-pane file manager with Top Inspector & Action Bar (Open, Read, Edit, Copy, Move, Rename, Delete) and Bottom Tree Sidebar + Folder Grid.
+- **Redesigned Bottom Dock**: Larger, customizable dock with pin/unpin functionality, active running indicators, and persistent state (`saveDockPinnedAppsJson`).
+- **Redesigned Desktop Environment**: 4x6 grid layout with auto-align, persistent icon positioning (`saveDesktopPositionsJson`), and smooth scale/alpha animations.
+- **Custom Top Bar**: Redesigned minimalist top status bar featuring a soft pulsing shield icon, real-time CPU/RAM meters, network indicator, battery percentage, and clock/date display.
+- **Context Menus**: Long-press popups for Files, Desktop wallpaper, and App icons.
+- **Save Compatibility**: Fully compatible with previous save files, maintaining seamless upgrades to version 0.3.0.
+
+---
+
 ## [0.2.0] - 2026-07-30
 ### Stage 3: Virtual File System (AbyssFS)
 #### Added

@@ -1,8 +1,14 @@
 package com.example.backdoor.ui.apps
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,33 +22,35 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.DriveFileMove
 import androidx.compose.material.icons.filled.DriveFileRenameOutline
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.DriveFileMove
+import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.RestoreFromTrash
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -51,6 +59,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -61,13 +70,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.backdoor.filesystem.VFSFileType
 import com.example.backdoor.filesystem.VFSNode
 import com.example.backdoor.filesystem.VFSSortMode
-import com.example.backdoor.filesystem.VirtualFileSystem
 import com.example.backdoor.game.AbyssOSManager
+import com.example.backdoor.ui.components.ContextMenuPopup
+import com.example.backdoor.ui.components.ContextMenuItem
 import com.example.ui.theme.AbyssBackground
 import com.example.ui.theme.AbyssCard
 import com.example.ui.theme.AbyssSurface
@@ -80,6 +91,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun FilesApp(
     osManager: AbyssOSManager,
@@ -90,12 +102,10 @@ fun FilesApp(
     val profile by osManager.userProfile.collectAsState()
     val activeUser = profile?.username ?: "operator"
 
-    // Subscribe to VFS state updates
     val vfsVersionEvent by vfs.updateEvent.collectAsState()
 
     var currentPath by remember { mutableStateOf("/home/$activeUser") }
     var searchQuery by remember { mutableStateOf("") }
-    var sortMode by remember { mutableStateOf(VFSSortMode.NAME_ASC) }
     var selectedNode by remember { mutableStateOf<VFSNode?>(null) }
     var showTrashView by remember { mutableStateOf(false) }
 
@@ -108,13 +118,16 @@ fun FilesApp(
     var showMoveDialog by remember { mutableStateOf(false) }
     var showCopyDialog by remember { mutableStateOf(false) }
 
-    // Input fields for dialogs
+    // Dialog Input states
     var inputName by remember { mutableStateOf("") }
     var inputContent by remember { mutableStateOf("") }
     var inputPath by remember { mutableStateOf("") }
 
-    // Retrieve directory contents reactively based on vfsVersionEvent trigger
-    val rawNodes = remember(currentPath, showTrashView, vfsVersionEvent) {
+    // Right-click / Long-press context menu
+    var contextMenuNode by remember { mutableStateOf<VFSNode?>(null) }
+
+    // Directory list nodes
+    val directoryNodes = remember(currentPath, showTrashView, vfsVersionEvent) {
         if (showTrashView) {
             val trashPath = "/home/$activeUser/Trash"
             vfs.listDirectory(trashPath, includeTrash = true) ?: emptyList()
@@ -123,22 +136,11 @@ fun FilesApp(
         }
     }
 
-    // Filter and Sort nodes
-    val filteredNodes = remember(rawNodes, searchQuery, sortMode) {
-        var list = if (searchQuery.isNotBlank()) {
+    val filteredNodes = remember(directoryNodes, searchQuery) {
+        if (searchQuery.isNotBlank()) {
             vfs.findFiles(searchQuery, if (showTrashView) "/home/$activeUser/Trash" else currentPath)
         } else {
-            rawNodes
-        }
-
-        when (sortMode) {
-            VFSSortMode.NAME_ASC -> list.sortedWith(compareBy({ it !is VFSNode.Directory }, { it.name.lowercase() }))
-            VFSSortMode.NAME_DESC -> list.sortedWith(compareBy({ it !is VFSNode.Directory }, { it.name.lowercase() })).reversed()
-            VFSSortMode.SIZE_ASC -> list.sortedBy { it.metadata.sizeBytes }
-            VFSSortMode.SIZE_DESC -> list.sortedByDescending { it.metadata.sizeBytes }
-            VFSSortMode.DATE_ASC -> list.sortedBy { it.metadata.modifiedTimestamp }
-            VFSSortMode.DATE_DESC -> list.sortedByDescending { it.metadata.modifiedTimestamp }
-            VFSSortMode.TYPE -> list.sortedBy { it.metadata.fileType.name }
+            directoryNodes.sortedWith(compareBy({ it !is VFSNode.Directory }, { it.name.lowercase() }))
         }
     }
 
@@ -146,809 +148,1086 @@ fun FilesApp(
         modifier = modifier
             .fillMaxSize()
             .background(AbyssBackground)
-            .padding(8.dp)
+            .padding(6.dp)
     ) {
-        // Navigation & Breadcrumb Bar
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(6.dp))
-                .background(AbyssSurface)
-                .padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (currentPath != "/" && !showTrashView) {
-                Box(
-                    modifier = Modifier
-                        .size(30.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(AbyssSurfaceVariant)
-                        .clickable {
-                            val parent = vfs.getNode(currentPath)?.parentPath ?: "/"
-                            currentPath = parent
-                            selectedNode = null
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Up Directory",
-                        tint = accentColor,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-            }
-
-            Text(
-                text = if (showTrashView) "TRASH REPOSITORY: " else "PATH: ",
-                color = TextMuted,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = FontFamily.Monospace
-            )
-            Text(
-                text = if (showTrashView) "/home/$activeUser/Trash" else currentPath,
-                color = accentColor,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                fontFamily = FontFamily.Monospace,
-                modifier = Modifier.weight(1f)
-            )
-
-            // Trash View Toggle
-            Button(
-                onClick = {
-                    showTrashView = !showTrashView
+        // =========================================================================
+        // TOP AREA: SELECTED ITEM INSPECTOR & ACTION BUTTONS
+        // =========================================================================
+        TopInspectorPane(
+            selectedNode = selectedNode,
+            activeUser = activeUser,
+            accentColor = accentColor,
+            onOpen = { node ->
+                if (node is VFSNode.Directory) {
+                    currentPath = node.path
                     selectedNode = null
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (showTrashView) Color(0xFFD32F2F) else AbyssSurfaceVariant,
-                    contentColor = TextPrimary
-                ),
-                shape = RoundedCornerShape(4.dp),
-                modifier = Modifier.height(28.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Trash",
-                    modifier = Modifier.size(14.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = if (showTrashView) "EXIT TRASH" else "TRASH",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace
-                )
+                } else if (node is VFSNode.File) {
+                    selectedNode = node
+                    inputContent = node.content
+                    showEditFileDialog = true
+                }
+            },
+            onRead = { node ->
+                if (node is VFSNode.File) {
+                    selectedNode = node
+                    showInfoDialog = true
+                }
+            },
+            onEdit = { node ->
+                if (node is VFSNode.File) {
+                    selectedNode = node
+                    inputContent = node.content
+                    showEditFileDialog = true
+                }
+            },
+            onCopy = { node ->
+                selectedNode = node
+                inputPath = currentPath
+                showCopyDialog = true
+            },
+            onMove = { node ->
+                selectedNode = node
+                inputPath = currentPath
+                showMoveDialog = true
+            },
+            onRename = { node ->
+                selectedNode = node
+                inputName = node.name
+                showRenameDialog = true
+            },
+            onDelete = { node ->
+                if (node != null) {
+                    vfs.deleteNode(node.path, permanent = showTrashView, userHandle = activeUser)
+                    selectedNode = null
+                }
+            },
+            onCreateFile = {
+                inputName = ""
+                inputContent = ""
+                showCreateFileDialog = true
+            },
+            onCreateFolder = {
+                inputName = ""
+                showCreateFolderDialog = true
             }
-        }
+        )
 
         Spacer(modifier = Modifier.height(6.dp))
 
-        // Toolbar: Search, Sort & Action Buttons
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(6.dp))
-                .background(AbyssSurface)
-                .padding(6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            // Search Input
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                placeholder = { Text("Search files...", fontSize = 11.sp, color = TextMuted) },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search", tint = accentColor, modifier = Modifier.size(16.dp)) },
-                modifier = Modifier
-                    .weight(1f)
-                    .height(38.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = accentColor,
-                    unfocusedBorderColor = AbyssSurfaceVariant,
-                    focusedTextColor = TextPrimary,
-                    unfocusedTextColor = TextPrimary
-                ),
-                singleLine = true
-            )
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            // Sort Dropdown
-            var sortMenuExpanded by remember { mutableStateOf(false) }
-            Box {
-                IconButton(
-                    onClick = { sortMenuExpanded = true },
-                    modifier = Modifier
-                        .size(38.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(AbyssSurfaceVariant)
-                ) {
-                    Icon(Icons.Default.Sort, contentDescription = "Sort", tint = accentColor, modifier = Modifier.size(18.dp))
-                }
-                DropdownMenu(
-                    expanded = sortMenuExpanded,
-                    onDismissRequest = { sortMenuExpanded = false },
-                    modifier = Modifier.background(AbyssCard)
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("Sort Name A-Z", fontSize = 11.sp, color = TextPrimary, fontFamily = FontFamily.Monospace) },
-                        onClick = { sortMode = VFSSortMode.NAME_ASC; sortMenuExpanded = false }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Sort Size", fontSize = 11.sp, color = TextPrimary, fontFamily = FontFamily.Monospace) },
-                        onClick = { sortMode = VFSSortMode.SIZE_DESC; sortMenuExpanded = false }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Sort Date", fontSize = 11.sp, color = TextPrimary, fontFamily = FontFamily.Monospace) },
-                        onClick = { sortMode = VFSSortMode.DATE_DESC; sortMenuExpanded = false }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Sort Type", fontSize = 11.sp, color = TextPrimary, fontFamily = FontFamily.Monospace) },
-                        onClick = { sortMode = VFSSortMode.TYPE; sortMenuExpanded = false }
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(6.dp))
-
-            if (showTrashView) {
-                // Empty Trash Button
-                Button(
-                    onClick = { vfs.emptyTrash(activeUser) },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB71C1C), contentColor = Color.White),
-                    shape = RoundedCornerShape(4.dp),
-                    modifier = Modifier.height(38.dp)
-                ) {
-                    Icon(Icons.Default.DeleteForever, contentDescription = "Empty", modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("EMPTY TRASH", fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
-                }
-            } else {
-                // New File & New Folder Buttons
-                IconButton(
-                    onClick = { inputName = ""; inputContent = ""; showCreateFileDialog = true },
-                    modifier = Modifier
-                        .size(38.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(AbyssSurfaceVariant)
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "New File", tint = accentColor, modifier = Modifier.size(18.dp))
-                }
-
-                Spacer(modifier = Modifier.width(4.dp))
-
-                IconButton(
-                    onClick = { inputName = ""; showCreateFolderDialog = true },
-                    modifier = Modifier
-                        .size(38.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(AbyssSurfaceVariant)
-                ) {
-                    Icon(Icons.Default.CreateNewFolder, contentDescription = "New Folder", tint = CyberCyan, modifier = Modifier.size(18.dp))
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Main Dual-Pane Explorer: Files List on Left, Action/Inspector Pane on Right
+        // =========================================================================
+        // BOTTOM AREA: DUAL-PANE (DIR TREE SIDEBAR + CONTENT VIEWER)
+        // =========================================================================
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
         ) {
-            // Left Pane: Directory / Files List
-            LazyColumn(
+            // Left Pane: Directory Tree Navigation
+            DirectoryTreeSidebar(
+                vfs = vfs,
+                activeUser = activeUser,
+                currentPath = currentPath,
+                accentColor = accentColor,
+                onSelectDirectory = { path ->
+                    currentPath = path
+                    selectedNode = null
+                },
                 modifier = Modifier
-                    .weight(1.3f)
+                    .width(180.dp)
                     .fillMaxHeight()
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(AbyssSurface)
-                    .padding(6.dp)
-            ) {
-                if (filteredNodes.isEmpty()) {
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(160.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = if (showTrashView) "(Trash repository empty)" else "(Empty directory)",
-                                color = TextMuted,
-                                fontSize = 12.sp,
-                                fontFamily = FontFamily.Monospace
-                            )
-                        }
+            )
+
+            Spacer(modifier = Modifier.width(6.dp))
+
+            // Right Pane: Folder Content Viewer & Search
+            FolderContentViewer(
+                currentPath = currentPath,
+                nodes = filteredNodes,
+                selectedNode = selectedNode,
+                searchQuery = searchQuery,
+                showTrashView = showTrashView,
+                activeUser = activeUser,
+                accentColor = accentColor,
+                onSearchChange = { searchQuery = it },
+                onSelectNode = { node -> selectedNode = node },
+                onNodeDoubleTap = { node ->
+                    if (node is VFSNode.Directory) {
+                        currentPath = node.path
+                        selectedNode = null
+                    } else if (node is VFSNode.File) {
+                        selectedNode = node
+                        inputContent = node.content
+                        showEditFileDialog = true
                     }
+                },
+                onNodeLongPress = { node -> contextMenuNode = node },
+                onToggleTrash = {
+                    showTrashView = !showTrashView
+                    selectedNode = null
+                },
+                onNavigateUp = {
+                    val parent = vfs.getNode(currentPath)?.parentPath ?: "/"
+                    currentPath = parent
+                    selectedNode = null
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+            )
+        }
+    }
+
+    // Context Menu for Items
+    val targetCtxNode = contextMenuNode
+    if (targetCtxNode != null) {
+        ContextMenuPopup(
+            visible = true,
+            onDismissRequest = { contextMenuNode = null },
+            title = targetCtxNode.name,
+            accentColor = accentColor,
+            items = buildList {
+                if (targetCtxNode is VFSNode.Directory) {
+                    add(
+                        ContextMenuItem(
+                            label = "Open Directory",
+                            icon = Icons.Default.Folder,
+                            onClick = {
+                                currentPath = targetCtxNode.path
+                                selectedNode = null
+                            }
+                        )
+                    )
                 } else {
-                    items(filteredNodes) { node ->
-                        val isDirectory = node is VFSNode.Directory
-                        val isSelected = selectedNode?.path == node.path
-                        val fileType = node.metadata.fileType
-
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 2.dp)
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(
-                                    when {
-                                        isSelected -> accentColor.copy(alpha = 0.25f)
-                                        isDirectory -> AbyssSurfaceVariant.copy(alpha = 0.6f)
-                                        else -> Color.Transparent
-                                    }
-                                )
-                                .border(
-                                    width = if (isSelected) 1.dp else 0.dp,
-                                    color = if (isSelected) accentColor else Color.Transparent,
-                                    shape = RoundedCornerShape(4.dp)
-                                )
-                                .clickable {
-                                    selectedNode = node
-                                }
-                                .padding(horizontal = 8.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // File Icon
-                            Icon(
-                                imageVector = getFileIcon(fileType, (node as? VFSNode.File)?.isExecutable == true),
-                                contentDescription = node.name,
-                                tint = getFileIconColor(fileType, isDirectory, accentColor),
-                                modifier = Modifier.size(20.dp)
-                            )
-
-                            Spacer(modifier = Modifier.width(8.dp))
-
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = node.name,
-                                    color = if (isDirectory) CyberCyan else TextPrimary,
-                                    fontSize = 12.sp,
-                                    fontFamily = FontFamily.Monospace,
-                                    fontWeight = if (isDirectory) FontWeight.Bold else FontWeight.Medium
-                                )
-                                Text(
-                                    text = "${node.metadata.permissions} | ${formatSize(node.metadata.sizeBytes)} | ${node.metadata.owner}",
-                                    color = TextMuted,
-                                    fontSize = 9.sp,
-                                    fontFamily = FontFamily.Monospace
-                                )
+                    add(
+                        ContextMenuItem(
+                            label = "Read Content",
+                            icon = Icons.Default.Description,
+                            onClick = {
+                                selectedNode = targetCtxNode
+                                showInfoDialog = true
                             }
-
-                            if (node.metadata.isSystemProtected) {
-                                Icon(
-                                    imageVector = Icons.Default.Security,
-                                    contentDescription = "Protected",
-                                    tint = Color(0xFFFFB74D),
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
+                        )
+                    )
+                    add(
+                        ContextMenuItem(
+                            label = "Edit File",
+                            icon = Icons.Default.Edit,
+                            onClick = {
+                                selectedNode = targetCtxNode
+                                inputContent = (targetCtxNode as VFSNode.File).content
+                                showEditFileDialog = true
                             }
-
-                            if (isDirectory && !showTrashView) {
-                                Button(
-                                    onClick = {
-                                        currentPath = node.path
-                                        selectedNode = null
-                                    },
-                                    colors = ButtonDefaults.buttonColors(containerColor = AbyssSurfaceVariant, contentColor = CyberCyan),
-                                    shape = RoundedCornerShape(3.dp),
-                                    modifier = Modifier.height(24.dp)
-                                ) {
-                                    Text("OPEN", fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
-                                }
-                            }
+                        )
+                    )
+                }
+                add(
+                    ContextMenuItem(
+                        label = "Copy Node",
+                        icon = Icons.Default.ContentCopy,
+                        onClick = {
+                            selectedNode = targetCtxNode
+                            inputPath = currentPath
+                            showCopyDialog = true
                         }
+                    )
+                )
+                add(
+                    ContextMenuItem(
+                        label = "Move Node",
+                        icon = Icons.Default.DriveFileMove,
+                        onClick = {
+                            selectedNode = targetCtxNode
+                            inputPath = currentPath
+                            showMoveDialog = true
+                        }
+                    )
+                )
+                add(
+                    ContextMenuItem(
+                        label = "Rename Node",
+                        icon = Icons.Default.DriveFileRenameOutline,
+                        onClick = {
+                            selectedNode = targetCtxNode
+                            inputName = targetCtxNode.name
+                            showRenameDialog = true
+                        }
+                    )
+                )
+                add(
+                    ContextMenuItem(
+                        label = "Delete Node",
+                        icon = Icons.Default.Delete,
+                        isDanger = true,
+                        onClick = {
+                            vfs.deleteNode(targetCtxNode.path, permanent = showTrashView, userHandle = activeUser)
+                            selectedNode = null
+                        }
+                    )
+                )
+            }
+        )
+    }
+
+    // Modals & Dialogs
+    if (showCreateFileDialog) {
+        CreateFileDialog(
+            onDismiss = { showCreateFileDialog = false },
+            onCreate = { name, content ->
+                vfs.createFile(dirPath = currentPath, fileName = name, content = content, owner = activeUser)
+                showCreateFileDialog = false
+            },
+            accentColor = accentColor
+        )
+    }
+
+    if (showCreateFolderDialog) {
+        CreateFolderDialog(
+            onDismiss = { showCreateFolderDialog = false },
+            onCreate = { folderName ->
+                vfs.createDirectory(dirPath = currentPath, dirName = folderName, owner = activeUser)
+                showCreateFolderDialog = false
+            },
+            accentColor = accentColor
+        )
+    }
+
+    if (showRenameDialog && selectedNode != null) {
+        RenameDialog(
+            currentName = selectedNode?.name ?: "",
+            onDismiss = { showRenameDialog = false },
+            onRename = { newName ->
+                selectedNode?.let { vfs.renameNode(it.path, newName, activeUser) }
+                showRenameDialog = false
+                selectedNode = null
+            },
+            accentColor = accentColor
+        )
+    }
+
+    if (showEditFileDialog && selectedNode is VFSNode.File) {
+        EditFileDialog(
+            node = selectedNode as VFSNode.File,
+            onDismiss = { showEditFileDialog = false },
+            onSave = { newContent ->
+                (selectedNode as? VFSNode.File)?.let { vfs.writeFile(it.path, newContent, activeUser) }
+                showEditFileDialog = false
+            },
+            accentColor = accentColor
+        )
+    }
+
+    if (showInfoDialog && selectedNode != null) {
+        FileInfoDialog(
+            node = selectedNode!!,
+            onDismiss = { showInfoDialog = false },
+            accentColor = accentColor
+        )
+    }
+
+    if (showMoveDialog && selectedNode != null) {
+        PathPromptDialog(
+            title = "MOVE NODE",
+            promptLabel = "Destination Directory Path:",
+            defaultPath = currentPath,
+            onDismiss = { showMoveDialog = false },
+            onConfirm = { destDir ->
+                selectedNode?.let { vfs.moveNode(it.path, "$destDir/${it.name}", activeUser) }
+                showMoveDialog = false
+                selectedNode = null
+            },
+            accentColor = accentColor
+        )
+    }
+
+    if (showCopyDialog && selectedNode != null) {
+        PathPromptDialog(
+            title = "COPY NODE",
+            promptLabel = "Target Directory Path:",
+            defaultPath = currentPath,
+            onDismiss = { showCopyDialog = false },
+            onConfirm = { destDir ->
+                selectedNode?.let { vfs.copyNode(it.path, "$destDir/${it.name}_copy", activeUser) }
+                showCopyDialog = false
+                selectedNode = null
+            },
+            accentColor = accentColor
+        )
+    }
+}
+
+// =============================================================================
+// TOP INSPECTOR PANE
+// =============================================================================
+@Composable
+private fun TopInspectorPane(
+    selectedNode: VFSNode?,
+    activeUser: String,
+    accentColor: Color,
+    onOpen: (VFSNode) -> Unit,
+    onRead: (VFSNode) -> Unit,
+    onEdit: (VFSNode) -> Unit,
+    onCopy: (VFSNode) -> Unit,
+    onMove: (VFSNode) -> Unit,
+    onRename: (VFSNode) -> Unit,
+    onDelete: (VFSNode?) -> Unit,
+    onCreateFile: () -> Unit,
+    onCreateFolder: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(AbyssSurface)
+            .border(0.5.dp, accentColor.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+            .padding(10.dp)
+            .animateContentSize()
+    ) {
+        Column {
+            // Selected Properties Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "INSPECTOR: " + (selectedNode?.name ?: "[ No File Selected ]"),
+                    color = accentColor,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Button(
+                        onClick = onCreateFile,
+                        colors = ButtonDefaults.buttonColors(containerColor = AbyssSurfaceVariant, contentColor = TextPrimary),
+                        shape = RoundedCornerShape(4.dp),
+                        modifier = Modifier.height(26.dp)
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(12.dp))
+                        Spacer(modifier = Modifier.width(2.dp))
+                        Text("+File", fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                    }
+
+                    Button(
+                        onClick = onCreateFolder,
+                        colors = ButtonDefaults.buttonColors(containerColor = AbyssSurfaceVariant, contentColor = TextPrimary),
+                        shape = RoundedCornerShape(4.dp),
+                        modifier = Modifier.height(26.dp)
+                    ) {
+                        Icon(Icons.Default.CreateNewFolder, contentDescription = null, modifier = Modifier.size(12.dp))
+                        Spacer(modifier = Modifier.width(2.dp))
+                        Text("+Folder", fontSize = 10.sp, fontFamily = FontFamily.Monospace)
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
-            // Right Pane: Item Inspector & Context Action Panel
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(AbyssCard)
-                    .border(0.5.dp, accentColor.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
-                    .padding(8.dp)
+            // Meta detail grid
+            val meta = selectedNode?.metadata
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                val node = selectedNode
-                if (node != null) {
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        Text(
-                            text = "METADATA INSPECTOR",
-                            color = accentColor,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
+                PropertyMetaTag(label = "PATH", value = selectedNode?.path ?: "---")
+                PropertyMetaTag(label = "SIZE", value = if (meta != null) formatBytes(meta.sizeBytes) else "---")
+                PropertyMetaTag(label = "OWNER", value = meta?.owner ?: "---")
+                PropertyMetaTag(label = "PERM", value = meta?.permissions ?: "---")
+                PropertyMetaTag(label = "TYPE", value = meta?.fileType?.name ?: "---")
+                PropertyMetaTag(label = "MODIFIED", value = if (meta != null) formatDate(meta.modifiedTimestamp) else "---")
+            }
 
-                        Text(
-                            text = "NAME: ${node.name}",
-                            color = TextPrimary,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace
-                        )
-                        Text(
-                            text = "TYPE: ${node.metadata.fileType.description}",
-                            color = TextMuted,
-                            fontSize = 10.sp,
-                            fontFamily = FontFamily.Monospace
-                        )
-                        Text(
-                            text = "PATH: ${node.path}",
-                            color = TextMuted,
-                            fontSize = 10.sp,
-                            fontFamily = FontFamily.Monospace
-                        )
-                        Text(
-                            text = "PERMS: ${node.metadata.permissions} (${node.metadata.owner})",
-                            color = TextMuted,
-                            fontSize = 10.sp,
-                            fontFamily = FontFamily.Monospace
-                        )
+            Spacer(modifier = Modifier.height(8.dp))
 
-                        Spacer(modifier = Modifier.height(8.dp))
+            // Action Buttons Bar
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                val hasSelection = selectedNode != null
 
-                        // Context Actions Palette
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(AbyssSurface)
-                                .padding(6.dp)
-                        ) {
-                            if (showTrashView) {
-                                // Trash Operations
-                                Button(
-                                    onClick = {
-                                        vfs.restoreFromTrash(node.path, activeUser)
-                                        selectedNode = null
-                                    },
-                                    colors = ButtonDefaults.buttonColors(containerColor = TerminalGreen, contentColor = Color.Black),
-                                    modifier = Modifier.fillMaxWidth().height(28.dp),
-                                    shape = RoundedCornerShape(4.dp)
-                                ) {
-                                    Icon(Icons.Default.RestoreFromTrash, contentDescription = "Restore", modifier = Modifier.size(14.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("RESTORE FILE", fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
-                                }
-
-                                Spacer(modifier = Modifier.height(4.dp))
-
-                                Button(
-                                    onClick = {
-                                        vfs.deleteNode(node.path, permanent = true, userHandle = activeUser)
-                                        selectedNode = null
-                                    },
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F), contentColor = Color.White),
-                                    modifier = Modifier.fillMaxWidth().height(28.dp),
-                                    shape = RoundedCornerShape(4.dp)
-                                ) {
-                                    Icon(Icons.Default.DeleteForever, contentDescription = "Delete", modifier = Modifier.size(14.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("DELETE PERMANENTLY", fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
-                                }
-                            } else {
-                                // Standard Operations
-                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                    if (node is VFSNode.File) {
-                                        Button(
-                                            onClick = {
-                                                inputContent = node.content
-                                                showEditFileDialog = true
-                                            },
-                                            colors = ButtonDefaults.buttonColors(containerColor = AbyssSurfaceVariant, contentColor = accentColor),
-                                            modifier = Modifier.weight(1f).height(28.dp),
-                                            shape = RoundedCornerShape(4.dp)
-                                        ) {
-                                            Icon(Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(12.dp))
-                                            Spacer(modifier = Modifier.width(2.dp))
-                                            Text("EDIT", fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
-                                        }
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                    }
-
-                                    Button(
-                                        onClick = {
-                                            inputName = node.name
-                                            showRenameDialog = true
-                                        },
-                                        colors = ButtonDefaults.buttonColors(containerColor = AbyssSurfaceVariant, contentColor = TextPrimary),
-                                        modifier = Modifier.weight(1f).height(28.dp),
-                                        shape = RoundedCornerShape(4.dp)
-                                    ) {
-                                        Icon(Icons.Default.DriveFileRenameOutline, contentDescription = "Rename", modifier = Modifier.size(12.dp))
-                                        Spacer(modifier = Modifier.width(2.dp))
-                                        Text("RENAME", fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.height(4.dp))
-
-                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                    Button(
-                                        onClick = {
-                                            inputPath = "/home/$activeUser/Documents"
-                                            showCopyDialog = true
-                                        },
-                                        colors = ButtonDefaults.buttonColors(containerColor = AbyssSurfaceVariant, contentColor = TextPrimary),
-                                        modifier = Modifier.weight(1f).height(28.dp),
-                                        shape = RoundedCornerShape(4.dp)
-                                    ) {
-                                        Icon(Icons.Default.ContentCopy, contentDescription = "Copy", modifier = Modifier.size(12.dp))
-                                        Spacer(modifier = Modifier.width(2.dp))
-                                        Text("COPY", fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
-                                    }
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Button(
-                                        onClick = {
-                                            inputPath = "/home/$activeUser/Documents"
-                                            showMoveDialog = true
-                                        },
-                                        colors = ButtonDefaults.buttonColors(containerColor = AbyssSurfaceVariant, contentColor = TextPrimary),
-                                        modifier = Modifier.weight(1f).height(28.dp),
-                                        shape = RoundedCornerShape(4.dp)
-                                    ) {
-                                        Icon(Icons.Default.DriveFileMove, contentDescription = "Move", modifier = Modifier.size(12.dp))
-                                        Spacer(modifier = Modifier.width(2.dp))
-                                        Text("MOVE", fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.height(4.dp))
-
-                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                    Button(
-                                        onClick = { showInfoDialog = true },
-                                        colors = ButtonDefaults.buttonColors(containerColor = AbyssSurfaceVariant, contentColor = CyberCyan),
-                                        modifier = Modifier.weight(1f).height(28.dp),
-                                        shape = RoundedCornerShape(4.dp)
-                                    ) {
-                                        Icon(Icons.Default.Info, contentDescription = "Info", modifier = Modifier.size(12.dp))
-                                        Spacer(modifier = Modifier.width(2.dp))
-                                        Text("INFO", fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
-                                    }
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Button(
-                                        onClick = {
-                                            vfs.deleteNode(node.path, permanent = false, userHandle = activeUser)
-                                            selectedNode = null
-                                        },
-                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC62828), contentColor = Color.White),
-                                        modifier = Modifier.weight(1f).height(28.dp),
-                                        shape = RoundedCornerShape(4.dp)
-                                    ) {
-                                        Icon(Icons.Default.Delete, contentDescription = "Delete", modifier = Modifier.size(12.dp))
-                                        Spacer(modifier = Modifier.width(2.dp))
-                                        Text("TRASH", fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
-                                    }
-                                }
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        // Preview Content Box
-                        Text(
-                            text = "CONTENT PREVIEW:",
-                            color = TextMuted,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(AbyssBackground)
-                                .padding(8.dp)
-                        ) {
-                            Text(
-                                text = when (node) {
-                                    is VFSNode.File -> node.content.ifEmpty { "(empty file)" }
-                                    is VFSNode.Directory -> "Directory containing ${node.children.size} items."
-                                },
-                                color = TextPrimary,
-                                fontSize = 10.sp,
-                                fontFamily = FontFamily.Monospace
-                            )
-                        }
-                    }
-                } else {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "Select an item to view metadata & actions.",
-                            color = TextMuted,
-                            fontSize = 11.sp,
-                            fontFamily = FontFamily.Monospace
-                        )
-                    }
+                ActionButton(label = "Open", icon = Icons.Default.OpenInNew, enabled = hasSelection, accentColor = accentColor) {
+                    selectedNode?.let(onOpen)
+                }
+                ActionButton(label = "Read", icon = Icons.Default.Description, enabled = hasSelection && selectedNode is VFSNode.File, accentColor = accentColor) {
+                    selectedNode?.let(onRead)
+                }
+                ActionButton(label = "Edit", icon = Icons.Default.Edit, enabled = hasSelection && selectedNode is VFSNode.File, accentColor = accentColor) {
+                    selectedNode?.let(onEdit)
+                }
+                ActionButton(label = "Copy", icon = Icons.Default.ContentCopy, enabled = hasSelection, accentColor = accentColor) {
+                    selectedNode?.let(onCopy)
+                }
+                ActionButton(label = "Move", icon = Icons.Default.DriveFileMove, enabled = hasSelection, accentColor = accentColor) {
+                    selectedNode?.let(onMove)
+                }
+                ActionButton(label = "Rename", icon = Icons.Default.DriveFileRenameOutline, enabled = hasSelection, accentColor = accentColor) {
+                    selectedNode?.let(onRename)
+                }
+                ActionButton(label = "Delete", icon = Icons.Default.Delete, enabled = hasSelection, isDanger = true, accentColor = accentColor) {
+                    onDelete(selectedNode)
                 }
             }
         }
     }
+}
 
-    // Modal Dialog: Create File
-    if (showCreateFileDialog) {
-        CustomFileDialog(
-            title = "CREATE NEW FILE",
-            nameLabel = "Filename (e.g. data.txt, payload.sh)",
-            initialName = inputName,
-            initialContent = inputContent,
-            showContentField = true,
-            confirmButtonText = "CREATE FILE",
-            accentColor = accentColor,
-            onDismiss = { showCreateFileDialog = false },
-            onConfirm = { name, content ->
-                if (name.isNotBlank()) {
-                    vfs.createFile(currentPath, name, content, owner = activeUser)
-                }
-                showCreateFileDialog = false
-            }
-        )
-    }
-
-    // Modal Dialog: Create Folder
-    if (showCreateFolderDialog) {
-        CustomFileDialog(
-            title = "CREATE NEW FOLDER",
-            nameLabel = "Folder Name",
-            initialName = inputName,
-            showContentField = false,
-            confirmButtonText = "CREATE FOLDER",
-            accentColor = CyberCyan,
-            onDismiss = { showCreateFolderDialog = false },
-            onConfirm = { name, _ ->
-                if (name.isNotBlank()) {
-                    vfs.createDirectory(currentPath, name, owner = activeUser)
-                }
-                showCreateFolderDialog = false
-            }
-        )
-    }
-
-    // Modal Dialog: Rename Item
-    if (showRenameDialog && selectedNode != null) {
-        CustomFileDialog(
-            title = "RENAME ITEM",
-            nameLabel = "New Name",
-            initialName = inputName,
-            showContentField = false,
-            confirmButtonText = "RENAME",
-            accentColor = accentColor,
-            onDismiss = { showRenameDialog = false },
-            onConfirm = { newName, _ ->
-                if (newName.isNotBlank()) {
-                    vfs.renameNode(selectedNode!!.path, newName, activeUser)
-                    selectedNode = null
-                }
-                showRenameDialog = false
-            }
-        )
-    }
-
-    // Modal Dialog: Edit File
-    if (showEditFileDialog && selectedNode is VFSNode.File) {
-        CustomFileDialog(
-            title = "EDIT FILE: ${selectedNode!!.name}",
-            nameLabel = "Filename",
-            initialName = selectedNode!!.name,
-            initialContent = inputContent,
-            showNameField = false,
-            showContentField = true,
-            confirmButtonText = "SAVE CHANGES",
-            accentColor = accentColor,
-            onDismiss = { showEditFileDialog = false },
-            onConfirm = { _, content ->
-                vfs.writeFile(selectedNode!!.path, content, activeUser)
-                showEditFileDialog = false
-            }
-        )
-    }
-
-    // Modal Dialog: Move Item
-    if (showMoveDialog && selectedNode != null) {
-        CustomFileDialog(
-            title = "MOVE ITEM",
-            nameLabel = "Destination Directory Path",
-            initialName = inputPath,
-            showContentField = false,
-            confirmButtonText = "MOVE HERE",
-            accentColor = accentColor,
-            onDismiss = { showMoveDialog = false },
-            onConfirm = { destPath, _ ->
-                if (destPath.isNotBlank()) {
-                    vfs.moveNode(selectedNode!!.path, destPath, activeUser)
-                    selectedNode = null
-                }
-                showMoveDialog = false
-            }
-        )
-    }
-
-    // Modal Dialog: Copy Item
-    if (showCopyDialog && selectedNode != null) {
-        CustomFileDialog(
-            title = "COPY ITEM",
-            nameLabel = "Destination Directory Path",
-            initialName = inputPath,
-            showContentField = false,
-            confirmButtonText = "COPY HERE",
-            accentColor = accentColor,
-            onDismiss = { showCopyDialog = false },
-            onConfirm = { destPath, _ ->
-                if (destPath.isNotBlank()) {
-                    vfs.copyNode(selectedNode!!.path, destPath, activeUser)
-                    selectedNode = null
-                }
-                showCopyDialog = false
-            }
-        )
-    }
-
-    // Modal Dialog: Full File Info
-    if (showInfoDialog && selectedNode != null) {
-        val node = selectedNode!!
-        val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { showInfoDialog = false },
-            containerColor = AbyssCard,
-            title = {
-                Text(
-                    text = "FILE PROPERTIES",
-                    color = accentColor,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace
-                )
-            },
-            text = {
-                Column {
-                    Text("Name: ${node.name}", color = TextPrimary, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
-                    Text("Type: ${node.metadata.fileType.description}", color = TextPrimary, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
-                    Text("Path: ${node.path}", color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
-                    Text("Owner: ${node.metadata.owner}", color = TextPrimary, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
-                    Text("Permissions: ${node.metadata.permissions}", color = TextPrimary, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
-                    Text("Size: ${formatSize(node.metadata.sizeBytes)}", color = TextPrimary, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
-                    Text("Created: ${dateFormat.format(Date(node.metadata.createdTimestamp))}", color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
-                    Text("Modified: ${dateFormat.format(Date(node.metadata.modifiedTimestamp))}", color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
-                    Text("System Protected: ${node.metadata.isSystemProtected}", color = if (node.metadata.isSystemProtected) Color(0xFFFFB74D) else TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = { showInfoDialog = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = AbyssSurfaceVariant, contentColor = TextPrimary)
-                ) {
-                    Text("CLOSE", fontSize = 11.sp, fontFamily = FontFamily.Monospace)
-                }
-            }
+@Composable
+private fun PropertyMetaTag(label: String, value: String) {
+    Column {
+        Text(text = label, color = TextMuted, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
+        Text(
+            text = value,
+            color = TextPrimary,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.SemiBold,
+            fontFamily = FontFamily.Monospace,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }
 
 @Composable
-private fun CustomFileDialog(
-    title: String,
-    nameLabel: String,
-    initialName: String = "",
-    initialContent: String = "",
-    showNameField: Boolean = true,
-    showContentField: Boolean = false,
-    confirmButtonText: String,
+private fun ActionButton(
+    label: String,
+    icon: ImageVector,
+    enabled: Boolean,
+    isDanger: Boolean = false,
     accentColor: Color,
-    onDismiss: () -> Unit,
-    onConfirm: (String, String) -> Unit
+    onClick: () -> Unit
 ) {
-    var nameState by remember { mutableStateOf(initialName) }
-    var contentState by remember { mutableStateOf(initialContent) }
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (isDanger) Color(0xFFD32F2F).copy(alpha = 0.8f) else accentColor.copy(alpha = 0.2f),
+            disabledContainerColor = AbyssSurfaceVariant.copy(alpha = 0.4f),
+            contentColor = if (isDanger) Color.White else accentColor,
+            disabledContentColor = TextMuted.copy(alpha = 0.4f)
+        ),
+        shape = RoundedCornerShape(4.dp),
+        modifier = Modifier.height(28.dp)
+    ) {
+        Icon(imageVector = icon, contentDescription = label, modifier = Modifier.size(12.dp))
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(text = label, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+    }
+}
 
-    androidx.compose.material3.AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = AbyssCard,
-        title = {
+// =============================================================================
+// LEFT SIDEBAR: DIRECTORY TREE
+// =============================================================================
+@Composable
+private fun DirectoryTreeSidebar(
+    vfs: com.example.backdoor.filesystem.VirtualFileSystem,
+    activeUser: String,
+    currentPath: String,
+    accentColor: Color,
+    onSelectDirectory: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val roots = remember {
+        listOf(
+            "/",
+            "/home/$activeUser",
+            "/home/$activeUser/Desktop",
+            "/home/$activeUser/Downloads",
+            "/home/$activeUser/Documents",
+            "/bin",
+            "/etc",
+            "/system",
+            "/logs"
+        )
+    }
+
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(AbyssSurface)
+            .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
+            .padding(6.dp)
+    ) {
+        Column {
             Text(
-                text = title,
+                text = "DIRECTORY TREE",
                 color = accentColor,
-                fontSize = 13.sp,
+                fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
-                fontFamily = FontFamily.Monospace
+                fontFamily = FontFamily.Monospace,
+                modifier = Modifier.padding(bottom = 6.dp)
             )
-        },
-        text = {
-            Column {
-                if (showNameField) {
+
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                items(roots) { path ->
+                    val isSelected = currentPath == path
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(if (isSelected) accentColor.copy(alpha = 0.25f) else Color.Transparent)
+                            .clickable { onSelectDirectory(path) }
+                            .padding(horizontal = 6.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Folder,
+                            contentDescription = path,
+                            tint = if (isSelected) accentColor else CyberCyan,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = path.split("/").lastOrNull().takeIf { !it.isNullOrEmpty() } ?: "/",
+                            color = if (isSelected) TextPrimary else TextMuted,
+                            fontSize = 11.sp,
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// =============================================================================
+// RIGHT PANE: FOLDER CONTENT VIEWER
+// =============================================================================
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun FolderContentViewer(
+    currentPath: String,
+    nodes: List<VFSNode>,
+    selectedNode: VFSNode?,
+    searchQuery: String,
+    showTrashView: Boolean,
+    activeUser: String,
+    accentColor: Color,
+    onSearchChange: (String) -> Unit,
+    onSelectNode: (VFSNode) -> Unit,
+    onNodeDoubleTap: (VFSNode) -> Unit,
+    onNodeLongPress: (VFSNode) -> Unit,
+    onToggleTrash: () -> Unit,
+    onNavigateUp: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(AbyssSurface)
+            .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
+            .padding(8.dp)
+    ) {
+        Column {
+            // Path Navigation & Search Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (currentPath != "/" && !showTrashView) {
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(AbyssSurfaceVariant)
+                                .clickable(onClick = onNavigateUp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowBack,
+                                contentDescription = "Up",
+                                tint = accentColor,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(6.dp))
+                    }
+
+                    Text(
+                        text = if (showTrashView) "/home/$activeUser/Trash" else currentPath,
+                        color = accentColor,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Search bar
                     OutlinedTextField(
-                        value = nameState,
-                        onValueChange = { nameState = it },
-                        label = { Text(nameLabel, fontSize = 10.sp) },
-                        modifier = Modifier.fillMaxWidth(),
+                        value = searchQuery,
+                        onValueChange = onSearchChange,
+                        placeholder = { Text("Filter...", fontSize = 10.sp, color = TextMuted) },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Filter", tint = accentColor, modifier = Modifier.size(12.dp)) },
+                        modifier = Modifier
+                            .width(130.dp)
+                            .height(32.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = accentColor,
+                            unfocusedBorderColor = AbyssSurfaceVariant,
+                            focusedContainerColor = AbyssBackground,
+                            unfocusedContainerColor = AbyssBackground,
                             focusedTextColor = TextPrimary,
                             unfocusedTextColor = TextPrimary
                         ),
                         singleLine = true
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
 
-                if (showContentField) {
-                    OutlinedTextField(
-                        value = contentState,
-                        onValueChange = { contentState = it },
-                        label = { Text("File Content", fontSize = 10.sp) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(140.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = accentColor,
-                            focusedTextColor = TextPrimary,
-                            unfocusedTextColor = TextPrimary
-                        )
+                    Spacer(modifier = Modifier.width(6.dp))
+
+                    Button(
+                        onClick = onToggleTrash,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (showTrashView) Color(0xFFD32F2F) else AbyssSurfaceVariant,
+                            contentColor = TextPrimary
+                        ),
+                        shape = RoundedCornerShape(4.dp),
+                        modifier = Modifier.height(32.dp)
+                    ) {
+                        Icon(Icons.Default.Delete, contentDescription = "Trash", modifier = Modifier.size(12.dp))
+                        Spacer(modifier = Modifier.width(2.dp))
+                        Text(if (showTrashView) "Exit Trash" else "Trash", fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // File items grid
+            if (nodes.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "[ Directory Empty ]",
+                        color = TextMuted,
+                        fontSize = 12.sp,
+                        fontFamily = FontFamily.Monospace
                     )
                 }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = { onConfirm(nameState, contentState) },
-                colors = ButtonDefaults.buttonColors(containerColor = accentColor, contentColor = Color.Black)
-            ) {
-                Text(confirmButtonText, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
-            }
-        },
-        dismissButton = {
-            Button(
-                onClick = onDismiss,
-                colors = ButtonDefaults.buttonColors(containerColor = AbyssSurfaceVariant, contentColor = TextMuted)
-            ) {
-                Text("CANCEL", fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = 130.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(nodes, key = { it.path }) { node ->
+                        val isSelected = selectedNode?.path == node.path
+                        val isDir = node is VFSNode.Directory
+
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(if (isSelected) accentColor.copy(alpha = 0.22f) else AbyssSurfaceVariant)
+                                .border(
+                                    width = if (isSelected) 1.dp else 0.5.dp,
+                                    color = if (isSelected) accentColor else Color.White.copy(alpha = 0.05f),
+                                    shape = RoundedCornerShape(6.dp)
+                                )
+                                .combinedClickable(
+                                    onClick = { onSelectNode(node) },
+                                    onDoubleClick = { onNodeDoubleTap(node) },
+                                    onLongClick = { onNodeLongPress(node) }
+                                )
+                                .padding(8.dp)
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    imageVector = if (isDir) Icons.Default.Folder else getFileIconVector(node.metadata.fileType),
+                                    contentDescription = node.name,
+                                    tint = if (isDir) CyberCyan else accentColor,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = node.name,
+                                    color = TextPrimary,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    fontFamily = FontFamily.Monospace,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = if (isDir) "DIR" else formatBytes(node.metadata.sizeBytes),
+                                    color = TextMuted,
+                                    fontSize = 9.sp,
+                                    fontFamily = FontFamily.Monospace
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
-    )
+    }
 }
 
-private fun getFileIcon(type: VFSFileType, isExecutable: Boolean): ImageVector {
-    return when {
-        isExecutable || type == VFSFileType.EXE -> Icons.Default.Terminal
-        type == VFSFileType.SH -> Icons.Default.Code
-        type == VFSFileType.DIRECTORY -> Icons.Default.Folder
-        type == VFSFileType.KEY -> Icons.Default.Key
-        type == VFSFileType.ENC || type == VFSFileType.SYS -> Icons.Default.Lock
+// Helper icons & formatting
+fun getFileIconVector(type: VFSFileType): ImageVector {
+    return when (type) {
+        VFSFileType.TXT, VFSFileType.LOG -> Icons.Default.Description
+        VFSFileType.CFG, VFSFileType.SYS -> Icons.Default.Code
+        VFSFileType.KEY, VFSFileType.ENC -> Icons.Default.Key
+        VFSFileType.EXE, VFSFileType.SH -> Icons.Default.Terminal
         else -> Icons.Default.Description
     }
 }
 
-private fun getFileIconColor(type: VFSFileType, isDir: Boolean, accentColor: Color): Color {
-    return when {
-        isDir -> CyberCyan
-        type == VFSFileType.EXE || type == VFSFileType.SH -> TerminalGreen
-        type == VFSFileType.KEY || type == VFSFileType.ENC -> Color(0xFFFFB74D)
-        type == VFSFileType.LOG -> Color(0xFF81D4FA)
-        else -> accentColor
-    }
-}
-
-private fun formatSize(bytes: Long): String {
+private fun formatBytes(bytes: Long): String {
     return when {
         bytes < 1024 -> "$bytes B"
         bytes < 1024 * 1024 -> "${bytes / 1024} KB"
         else -> "${bytes / (1024 * 1024)} MB"
+    }
+}
+
+private fun formatDate(timestamp: Long): String {
+    return SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(timestamp))
+}
+
+// =============================================================================
+// MODAL DIALOGS
+// =============================================================================
+@Composable
+private fun CreateFileDialog(
+    onDismiss: () -> Unit,
+    onCreate: (String, String) -> Unit,
+    accentColor: Color
+) {
+    var fileName by remember { mutableStateOf("") }
+    var fileContent by remember { mutableStateOf("") }
+
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        Box(
+            modifier = Modifier
+                .width(320.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(AbyssCard)
+                .border(1.dp, accentColor, RoundedCornerShape(8.dp))
+                .padding(16.dp)
+        ) {
+            Column {
+                Text("CREATE FILE", color = accentColor, fontSize = 14.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                Spacer(modifier = Modifier.height(10.dp))
+
+                OutlinedTextField(
+                    value = fileName,
+                    onValueChange = { fileName = it },
+                    label = { Text("File Name (e.g. note.txt)") },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = accentColor, unfocusedBorderColor = TextMuted),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = fileContent,
+                    onValueChange = { fileContent = it },
+                    label = { Text("Content") },
+                    minLines = 3,
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = accentColor, unfocusedBorderColor = TextMuted),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    Button(onClick = onDismiss, colors = ButtonDefaults.buttonColors(containerColor = AbyssSurfaceVariant)) {
+                        Text("Cancel")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            if (fileName.isNotBlank()) onCreate(fileName.trim(), fileContent)
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = accentColor, contentColor = Color.Black)
+                    ) {
+                        Text("Create")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CreateFolderDialog(
+    onDismiss: () -> Unit,
+    onCreate: (String) -> Unit,
+    accentColor: Color
+) {
+    var folderName by remember { mutableStateOf("") }
+
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        Box(
+            modifier = Modifier
+                .width(300.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(AbyssCard)
+                .border(1.dp, accentColor, RoundedCornerShape(8.dp))
+                .padding(16.dp)
+        ) {
+            Column {
+                Text("CREATE FOLDER", color = accentColor, fontSize = 14.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                Spacer(modifier = Modifier.height(10.dp))
+
+                OutlinedTextField(
+                    value = folderName,
+                    onValueChange = { folderName = it },
+                    label = { Text("Folder Name") },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = accentColor, unfocusedBorderColor = TextMuted),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    Button(onClick = onDismiss, colors = ButtonDefaults.buttonColors(containerColor = AbyssSurfaceVariant)) {
+                        Text("Cancel")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            if (folderName.isNotBlank()) onCreate(folderName.trim())
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = accentColor, contentColor = Color.Black)
+                    ) {
+                        Text("Create")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RenameDialog(
+    currentName: String,
+    onDismiss: () -> Unit,
+    onRename: (String) -> Unit,
+    accentColor: Color
+) {
+    var newName by remember { mutableStateOf(currentName) }
+
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        Box(
+            modifier = Modifier
+                .width(300.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(AbyssCard)
+                .border(1.dp, accentColor, RoundedCornerShape(8.dp))
+                .padding(16.dp)
+        ) {
+            Column {
+                Text("RENAME NODE", color = accentColor, fontSize = 14.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                Spacer(modifier = Modifier.height(10.dp))
+
+                OutlinedTextField(
+                    value = newName,
+                    onValueChange = { newName = it },
+                    label = { Text("New Name") },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = accentColor, unfocusedBorderColor = TextMuted),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    Button(onClick = onDismiss, colors = ButtonDefaults.buttonColors(containerColor = AbyssSurfaceVariant)) {
+                        Text("Cancel")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            if (newName.isNotBlank()) onRename(newName.trim())
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = accentColor, contentColor = Color.Black)
+                    ) {
+                        Text("Save")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EditFileDialog(
+    node: VFSNode.File,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit,
+    accentColor: Color
+) {
+    var content by remember { mutableStateOf(node.content) }
+
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .clip(RoundedCornerShape(8.dp))
+                .background(AbyssCard)
+                .border(1.dp, accentColor, RoundedCornerShape(8.dp))
+                .padding(16.dp)
+        ) {
+            Column {
+                Text("EDIT FILE: ${node.name}", color = accentColor, fontSize = 14.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                Spacer(modifier = Modifier.height(10.dp))
+
+                OutlinedTextField(
+                    value = content,
+                    onValueChange = { content = it },
+                    minLines = 8,
+                    maxLines = 14,
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = accentColor, unfocusedBorderColor = TextMuted),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    Button(onClick = onDismiss, colors = ButtonDefaults.buttonColors(containerColor = AbyssSurfaceVariant)) {
+                        Text("Cancel")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = { onSave(content) },
+                        colors = ButtonDefaults.buttonColors(containerColor = accentColor, contentColor = Color.Black)
+                    ) {
+                        Text("Save File")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FileInfoDialog(
+    node: VFSNode,
+    onDismiss: () -> Unit,
+    accentColor: Color
+) {
+    val meta = node.metadata
+
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        Box(
+            modifier = Modifier
+                .width(320.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(AbyssCard)
+                .border(1.dp, accentColor, RoundedCornerShape(8.dp))
+                .padding(16.dp)
+        ) {
+            Column {
+                Text("FILE PROPERTIES", color = accentColor, fontSize = 14.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Text("Name: ${node.name}", color = TextPrimary, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+                Text("Path: ${node.path}", color = TextPrimary, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+                Text("Type: ${meta.fileType}", color = TextPrimary, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+                Text("Size: ${formatBytes(meta.sizeBytes)}", color = TextPrimary, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+                Text("Owner: ${meta.owner}", color = TextPrimary, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+                Text("Permissions: ${meta.permissions}", color = TextPrimary, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+                Text("Modified: ${formatDate(meta.modifiedTimestamp)}", color = TextPrimary, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+
+                if (node is VFSNode.File) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("CONTENT PREVIEW:", color = accentColor, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(AbyssBackground)
+                            .padding(6.dp)
+                    ) {
+                        Text(
+                            text = node.content.take(400),
+                            color = TextMuted,
+                            fontSize = 10.sp,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    Button(onClick = onDismiss, colors = ButtonDefaults.buttonColors(containerColor = accentColor, contentColor = Color.Black)) {
+                        Text("Close")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PathPromptDialog(
+    title: String,
+    promptLabel: String,
+    defaultPath: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
+    accentColor: Color
+) {
+    var pathText by remember { mutableStateOf(defaultPath) }
+
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        Box(
+            modifier = Modifier
+                .width(320.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(AbyssCard)
+                .border(1.dp, accentColor, RoundedCornerShape(8.dp))
+                .padding(16.dp)
+        ) {
+            Column {
+                Text(title, color = accentColor, fontSize = 14.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                Spacer(modifier = Modifier.height(10.dp))
+
+                OutlinedTextField(
+                    value = pathText,
+                    onValueChange = { pathText = it },
+                    label = { Text(promptLabel) },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = accentColor, unfocusedBorderColor = TextMuted),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    Button(onClick = onDismiss, colors = ButtonDefaults.buttonColors(containerColor = AbyssSurfaceVariant)) {
+                        Text("Cancel")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            if (pathText.isNotBlank()) onConfirm(pathText.trim())
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = accentColor, contentColor = Color.Black)
+                    ) {
+                        Text("Confirm")
+                    }
+                }
+            }
+        }
     }
 }

@@ -3,8 +3,10 @@ package com.example.backdoor.game
 import com.example.backdoor.core.LogLevel
 import com.example.backdoor.core.NotificationLevel
 import com.example.backdoor.core.OsNotification
+import com.example.backdoor.core.ProcessManager
 import com.example.backdoor.core.SystemLog
 import com.example.backdoor.core.SystemStatus
+import com.example.backdoor.core.WindowManager
 import com.example.backdoor.filesystem.InMemoryVirtualFileSystem
 import com.example.backdoor.filesystem.VirtualFileSystem
 import com.example.backdoor.save.MemorySaveManager
@@ -22,6 +24,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import org.json.JSONArray
+import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -55,6 +59,9 @@ class AbyssOSManager(
     val settingsRepository: SettingsRepository = SettingsRepository(),
     val saveManager: SaveManager = MemorySaveManager()
 ) {
+    val processManager = ProcessManager(scope)
+    val windowManager = WindowManager(processManager)
+
     val commandRegistry = CommandRegistry()
     val commandExecutor = CommandExecutor(commandRegistry)
 
@@ -70,6 +77,12 @@ class AbyssOSManager(
     private val _activeApp = MutableStateFlow<OsApp?>(null)
     val activeApp: StateFlow<OsApp?> = _activeApp.asStateFlow()
 
+    private val _pinnedDockApps = MutableStateFlow<List<OsApp>>(emptyList())
+    val pinnedDockApps: StateFlow<List<OsApp>> = _pinnedDockApps.asStateFlow()
+
+    private val _desktopPositions = MutableStateFlow<Map<OsApp, Pair<Int, Int>>>(emptyMap())
+    val desktopPositions: StateFlow<Map<OsApp, Pair<Int, Int>>> = _desktopPositions.asStateFlow()
+
     private val _systemLogs = MutableStateFlow<List<SystemLog>>(emptyList())
     val systemLogs: StateFlow<List<SystemLog>> = _systemLogs.asStateFlow()
 
@@ -79,24 +92,62 @@ class AbyssOSManager(
     private val _activeNotification = MutableStateFlow<OsNotification?>(null)
     val activeNotification: StateFlow<OsNotification?> = _activeNotification.asStateFlow()
 
-    private val _brightnessAlpha = MutableStateFlow(0f) // 0f is full brightness, up to 0.7f dimming
+    private val _brightnessAlpha = MutableStateFlow(0f)
     val brightnessAlpha: StateFlow<Float> = _brightnessAlpha.asStateFlow()
 
     private var notificationJob: Job? = null
     private var tickerJob: Job? = null
 
     init {
-        addSystemLog("KERNEL", "AbyssOS 0.2.0 Manager initialized.", LogLevel.INFO)
+        addSystemLog("KERNEL", "AbyssOS 0.3.0 Manager initialized.", LogLevel.INFO)
         startStatusTicker()
 
         scope.launch {
             val profile = saveManager.getUserProfile()
             _userProfile.value = profile
 
-            // Restore saved VFS JSON state
             val vfsJson = saveManager.getVfsDataJson()
             if (!vfsJson.isNullOrEmpty()) {
                 vfs.deserializeFromJson(vfsJson, profile?.username ?: "operator")
+            }
+
+            // Restore Dock Pinned Apps
+            val dockJson = saveManager.getDockPinnedAppsJson()
+            if (!dockJson.isNullOrEmpty()) {
+                try {
+                    val jsonArr = JSONArray(dockJson)
+                    val restoredList = mutableListOf<OsApp>()
+                    for (i in 0 until jsonArr.length()) {
+                        val name = jsonArr.getString(i)
+                        OsApp.entries.find { it.name == name }?.let { restoredList.add(it) }
+                    }
+                    _pinnedDockApps.value = restoredList
+                } catch (e: Exception) {
+                    _pinnedDockApps.value = emptyList()
+                }
+            } else {
+                _pinnedDockApps.value = emptyList() // Dock empty by default as requested
+            }
+
+            // Restore Desktop Positions
+            val desktopJson = saveManager.getDesktopPositionsJson()
+            if (!desktopJson.isNullOrEmpty()) {
+                try {
+                    val jsonObj = JSONObject(desktopJson)
+                    val restoredMap = mutableMapOf<OsApp, Pair<Int, Int>>()
+                    jsonObj.keys().forEach { key ->
+                        val app = OsApp.entries.find { it.name == key }
+                        if (app != null) {
+                            val posObj = jsonObj.getJSONObject(key)
+                            restoredMap[app] = Pair(posObj.getInt("row"), posObj.getInt("col"))
+                        }
+                    }
+                    _desktopPositions.value = restoredMap
+                } catch (e: Exception) {
+                    _desktopPositions.value = defaultDesktopPositions()
+                }
+            } else {
+                _desktopPositions.value = defaultDesktopPositions()
             }
 
             if (profile != null) {
@@ -114,6 +165,77 @@ class AbyssOSManager(
         }
     }
 
+    private fun defaultDesktopPositions(): Map<OsApp, Pair<Int, Int>> {
+        val map = mutableMapOf<OsApp, Pair<Int, Int>>()
+        OsApp.entries.forEachIndexed { index, app ->
+            val row = index / 4
+            val col = index % 4
+            map[app] = Pair(row, col)
+        }
+        return map
+    }
+
+    fun pinAppToDock(app: OsApp) {
+        if (!_pinnedDockApps.value.contains(app)) {
+            val newList = _pinnedDockApps.value + app
+            _pinnedDockApps.value = newList
+            scope.launch {
+                val jsonArr = JSONArray()
+                newList.forEach { jsonArr.put(it.name) }
+                saveManager.saveDockPinnedAppsJson(jsonArr.toString())
+            }
+            showNotification("DOCK", "${app.appName} pinned to dock.", NotificationLevel.INFO)
+        }
+    }
+
+    fun unpinAppFromDock(app: OsApp) {
+        val newList = _pinnedDockApps.value.filterNot { it == app }
+        _pinnedDockApps.value = newList
+        scope.launch {
+            val jsonArr = JSONArray()
+            newList.forEach { jsonArr.put(it.name) }
+            saveManager.saveDockPinnedAppsJson(jsonArr.toString())
+        }
+        showNotification("DOCK", "${app.appName} unpinned from dock.", NotificationLevel.INFO)
+    }
+
+    fun updateDesktopPosition(app: OsApp, row: Int, col: Int) {
+        val newMap = _desktopPositions.value.toMutableMap()
+        newMap[app] = Pair(row, col)
+        _desktopPositions.value = newMap
+        scope.launch {
+            val jsonObj = JSONObject()
+            newMap.forEach { (a, pos) ->
+                val pObj = JSONObject()
+                pObj.put("row", pos.first)
+                pObj.put("col", pos.second)
+                jsonObj.put(a.name, pObj)
+            }
+            saveManager.saveDesktopPositionsJson(jsonObj.toString())
+        }
+    }
+
+    fun openApp(app: OsApp) {
+        windowManager.openOrFocusApp(app)
+        _activeApp.value = app
+        addSystemLog("UI", "Opened application: ${app.appName}", LogLevel.INFO)
+    }
+
+    fun closeActiveApp() {
+        val app = _activeApp.value
+        if (app != null) {
+            windowManager.closeWindow(app)
+            _activeApp.value = windowManager.getFocusedApp()
+            addSystemLog("UI", "Closed application: ${app.appName}", LogLevel.INFO)
+        }
+    }
+
+    fun closeApp(app: OsApp) {
+        windowManager.closeWindow(app)
+        _activeApp.value = windowManager.getFocusedApp()
+        addSystemLog("UI", "Closed application: ${app.appName}", LogLevel.INFO)
+    }
+
     fun startBootSequence() {
         _osState.value = OsState.BOOTING
         _bootLogs.value = emptyList()
@@ -121,7 +243,7 @@ class AbyssOSManager(
         scope.launch {
             val lines = listOf(
                 "AbyssOS Boot Sequence",
-                "Version 0.2.0",
+                "Version 0.3.0",
                 "",
                 "Initializing Kernel...",
                 "Loading Virtual Memory...",
@@ -262,19 +384,6 @@ class AbyssOSManager(
 
     private fun setupUserVfsDirectory(username: String) {
         vfs.setupUserHome(username)
-    }
-
-    fun openApp(app: OsApp) {
-        _activeApp.value = app
-        addSystemLog("UI", "Opened application: ${app.appName}", LogLevel.INFO)
-    }
-
-    fun closeActiveApp() {
-        val app = _activeApp.value
-        _activeApp.value = null
-        if (app != null) {
-            addSystemLog("UI", "Closed application: ${app.appName}", LogLevel.INFO)
-        }
     }
 
     fun getCommandContext(): CommandContext {
