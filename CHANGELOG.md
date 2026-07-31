@@ -1,5 +1,27 @@
 # AbyssOS Changelog
 
+## [0.7.0] - 2026-07-31
+### Development Milestone 7: Offensive Security Framework
+#### Added
+- **Central Security Framework Engine (`OffensiveSecurityFramework`)**: Module registration, asynchronous task execution via Coroutines, research session tracking, and saved state serialization.
+- **Port Scanner Engine (`PortScannerEngine`)**: Non-destructive TCP/UDP port probing, banner grabbing, response latency calculation, and open service indexing across corporate servers and network nodes.
+- **Service Configuration Scanner (`ServiceScanner`)**: Evaluates patch level compliance %, configuration ratings (Grade A to F), firewall defense grades (Hardened, Standard, Exposed), and security clearance tiers.
+- **In-Game Knowledge Database (`KnowledgeDatabase`)**: Technical Wiki containing articles on router architectures, directory services, directory traversal, protocol handshakes, and security tiers, accessible via Browser (`wiki.abyss`) and Terminal (`sec wiki`).
+- **Markdown Security Report Generator (`SecurityReportGenerator`)**: Formats and automatically exports structured markdown audit reports to `/home/operator/reports/` on AbyssFS.
+- **Network Application Security Control Center**: Tab 4 (SECURITY) featuring target selection, analysis module grid, live execution console with progress bar, and real-time security posture metrics (0-100 gauge).
+- **System Monitor Integration**: Added Offensive Security Telemetry Engine card displaying active tasks, running job progress, and generated report counters.
+- **Terminal Integration (`SecurityCommand`)**: `security` / `sec` / `scan` command for running scans, listing modules, querying the knowledge database, and inspecting session history.
+- **Milestone 8 Preparedness**: Added `DarkNetRoutingHook` interface for seamless future DarkNet onion routing integration.
+
+## [0.6.0] - 2026-07-31
+### Development Milestone 6: Corporate Grid
+#### Added
+- **Global Corporate Entity Generation**: 105 distinct organizations across 8 sectors (Financial, Tech, Defense, Energy, Pharma, Telecom, Logistics, Cyber) with domains, employee counts, and security clearance levels.
+- **Data Centers & Server Rack Topology**: Tier I-IV data centers housing 2,500+ corporate servers with rack IDs, IP addresses, service ports, and OS builds.
+- **Grid Navigation UI**: Tree view and sector filtering in Network App for exploring global corporate networks.
+
+---
+
 ## [0.4.0] - 2026-07-30
 ### Stage 5: Terminal Core + Command Engine & Extensibility
 #### Added

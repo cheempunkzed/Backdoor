@@ -137,7 +137,7 @@ fun NetworkApp(
                         .background(AbyssBackground)
                         .padding(2.dp)
                 ) {
-                    val tabs = listOf("LOCAL MAP", "GRID TREE", "ORGANIZATIONS", "INTERFACES")
+                    val tabs = listOf("LOCAL MAP", "GRID TREE", "ORGANIZATIONS", "INTERFACES", "SECURITY")
                     tabs.forEachIndexed { index, label ->
                         val isSelected = activeTab == index
                         Box(
@@ -204,6 +204,7 @@ fun NetworkApp(
             1 -> CorporateGridTreeView(orgs = orgs, accentColor = accentColor)
             2 -> OrganizationsDirectoryView(osManager = osManager, orgs = orgs, accentColor = accentColor)
             3 -> NetworkInterfacesView(osManager = osManager, accentColor = accentColor)
+            4 -> SecurityTabView(osManager = osManager, accentColor = accentColor)
         }
     }
 }
@@ -859,5 +860,374 @@ private fun getNodeIcon(nodeType: NodeType): ImageVector {
         NodeType.FIREWALL -> Icons.Default.Security
         NodeType.IOT_DEVICE -> Icons.Default.Tv
         NodeType.UNKNOWN_DEVICE -> Icons.Default.Lan
+    }
+}
+
+@Composable
+private fun SecurityTabView(
+    osManager: AbyssOSManager,
+    accentColor: Color
+) {
+    val framework = osManager.securityFramework
+    val modules = framework.getRegisteredModules()
+    val orgs by osManager.corporateRepository.organizations.collectAsState()
+    val tasks by framework.activeTasks.collectAsState()
+    val reports by framework.completedReports.collectAsState()
+
+    var targetInput by remember { mutableStateOf("aegis-corp.com") }
+    var selectedModuleId by remember { mutableStateOf(modules.firstOrNull()?.id ?: "mod-service-discovery") }
+
+    val activeTask = tasks.firstOrNull { it.target == targetInput || it.status == com.example.backdoor.security.framework.TaskStatus.RUNNING }
+    val latestReport = reports.firstOrNull { it.target == targetInput } ?: reports.firstOrNull()
+
+    Row(modifier = Modifier.fillMaxSize()) {
+        // Left Column: Target Selector & Security Modules
+        Column(
+            modifier = Modifier
+                .width(280.dp)
+                .fillMaxHeight()
+                .padding(end = 8.dp)
+        ) {
+            // Target Selection Card
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(AbyssCard)
+                    .border(0.5.dp, CyberCyan.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                    .padding(10.dp)
+            ) {
+                Column {
+                    Text(
+                        text = "TARGET ASSET SELECTION",
+                        color = CyberCyan,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(AbyssBackground)
+                            .border(0.5.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(4.dp))
+                            .padding(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        BasicTextField(
+                            value = targetInput,
+                            onValueChange = { targetInput = it },
+                            singleLine = true,
+                            textStyle = TextStyle(color = TextPrimary, fontSize = 11.sp, fontFamily = FontFamily.Monospace),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(text = "QUICK TARGETS:", color = TextMuted, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        items(orgs.take(4)) { org ->
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(AbyssSurface)
+                                    .clickable { targetInput = org.domain }
+                                    .padding(horizontal = 6.dp, vertical = 3.dp)
+                            ) {
+                                Text(org.domain, color = TextPrimary, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "SECURITY ANALYSIS MODULES",
+                color = TextMuted,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Monospace
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                items(modules) { mod ->
+                    val isSelected = mod.id == selectedModuleId
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(if (isSelected) accentColor.copy(alpha = 0.15f) else AbyssSurface)
+                            .border(0.5.dp, if (isSelected) accentColor else Color.Transparent, RoundedCornerShape(6.dp))
+                            .clickable { selectedModuleId = mod.id }
+                            .padding(10.dp)
+                    ) {
+                        Column {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = mod.name,
+                                    color = if (isSelected) accentColor else TextPrimary,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = FontFamily.Monospace
+                                )
+                                Icon(
+                                    imageVector = Icons.Default.Shield,
+                                    contentDescription = "Module",
+                                    tint = if (isSelected) accentColor else TextMuted,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = mod.description,
+                                color = TextMuted,
+                                fontSize = 9.sp,
+                                fontFamily = FontFamily.Monospace
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Right Column: Execution Console & Security Ratings
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+        ) {
+            // Execution Controls & Progress Card
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(AbyssCard)
+                    .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
+                    .padding(12.dp)
+            ) {
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "OFFENSIVE SECURITY ENGINE CONSOLE",
+                                color = accentColor,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Monospace
+                            )
+                            Text(
+                                text = "Active Target: $targetInput",
+                                color = TextMuted,
+                                fontSize = 10.sp,
+                                fontFamily = FontFamily.Monospace
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(accentColor)
+                                .clickable {
+                                    framework.runTask(selectedModuleId, targetInput, osManager)
+                                }
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = "EXECUTE ANALYSIS",
+                                color = Color.Black,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Monospace
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Progress Bar & Stream Output
+                    if (activeTask != null) {
+                        Text(
+                            text = "Task: ${activeTask.moduleName} [${activeTask.status.name}] - ${(activeTask.progress * 100).toInt()}%",
+                            color = StatusConnected,
+                            fontSize = 10.sp,
+                            fontFamily = FontFamily.Monospace
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        androidx.compose.material3.LinearProgressIndicator(
+                            progress = { activeTask.progress },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(4.dp)
+                                .clip(RoundedCornerShape(2.dp)),
+                            color = accentColor,
+                            trackColor = AbyssSurface
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(110.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(AbyssBackground)
+                                .padding(8.dp)
+                        ) {
+                            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                                items(activeTask.logOutput) { line ->
+                                    Text(text = line, color = StatusConnected, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
+                                }
+                            }
+                        }
+                    } else {
+                        Text(
+                            text = "Ready to analyze target $targetInput. Select a module on the left and click EXECUTE.",
+                            color = TextMuted,
+                            fontSize = 10.sp,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Security Assessment Ratings Card
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(AbyssCard)
+                    .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
+                    .padding(12.dp)
+            ) {
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "SECURITY CLEARANCE & VULNERABILITY EVALUATION",
+                            color = TechPurple,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace
+                        )
+
+                        if (latestReport != null) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(CyberCyan.copy(alpha = 0.2f))
+                                    .clickable {
+                                        osManager.showNotification(
+                                            title = "REPORT SAVED TO ABYSSFS",
+                                            message = "Report saved at ${latestReport.filePath}",
+                                            level = com.example.backdoor.core.NotificationLevel.SUCCESS
+                                        )
+                                    }
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text("EXPORT REPORT TO ABYSSFS", color = CyberCyan, fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        val score = latestReport?.securityScore ?: 88
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(AbyssSurface)
+                                .padding(10.dp)
+                        ) {
+                            Column {
+                                Text("SECURITY SCORE", color = TextMuted, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
+                                Text("$score / 100", color = StatusConnected, fontSize = 16.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                            }
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(AbyssSurface)
+                                .padding(10.dp)
+                        ) {
+                            Column {
+                                Text("PATCH COMPLIANCE", color = TextMuted, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
+                                Text(latestReport?.patchLevel ?: "94.5% Compliant", color = CyberCyan, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                            }
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(AbyssSurface)
+                                .padding(10.dp)
+                        ) {
+                            Column {
+                                Text("FIREWALL GRADE", color = TextMuted, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
+                                Text(latestReport?.firewallRating ?: "HARDENED", color = TechPurple, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text("SAVED SECURITY AUDIT REPORTS (${reports.size})", color = TextMuted, fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        items(reports) { r ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(AbyssSurface)
+                                    .padding(8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text(r.title, color = TextPrimary, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                                    Text("Path: ${r.filePath}", color = TextMuted, fontSize = 8.sp, fontFamily = FontFamily.Monospace)
+                                }
+                                Text("Score: ${r.securityScore}/100", color = StatusConnected, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }

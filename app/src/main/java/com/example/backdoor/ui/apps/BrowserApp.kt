@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -185,6 +186,9 @@ fun BrowserApp(
                 }
                 currentUrl.equals("about:network", ignoreCase = true) -> {
                     AboutNetworkPage(osManager = osManager, accentColor = accentColor)
+                }
+                currentUrl.contains("wiki", ignoreCase = true) || currentUrl.contains("docs", ignoreCase = true) -> {
+                    WikiWebPage(osManager = osManager, accentColor = accentColor)
                 }
                 corporateOrg != null -> {
                     CorporateWebPage(org = corporateOrg, accentColor = accentColor)
@@ -401,7 +405,7 @@ private fun LocalhostWebPage(osManager: AbyssOSManager, accentColor: Color) {
         Spacer(modifier = Modifier.height(16.dp))
         Text(text = "Local System Status: ACTIVE", color = StatusConnected, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
         Text(text = "Virtual File System: MOUNTED (/)", color = TextPrimary, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
-        Text(text = "Kernel Version: 0.6.0 CORPORATE GRID", color = TextPrimary, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+        Text(text = "Kernel Version: 0.7.0 OFFENSIVE SECURITY FRAMEWORK", color = TextPrimary, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
     }
 }
 
@@ -469,5 +473,70 @@ private fun ErrorWebPage(url: String) {
         Text(text = "Host Unreachable: $url", color = NeonRed, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
         Spacer(modifier = Modifier.height(12.dp))
         Text(text = "Verify that the domain name or IP address is registered on AbyssNet.", color = TextMuted, fontSize = 11.sp, fontFamily = FontFamily.Monospace, textAlign = TextAlign.Center)
+    }
+}
+
+@Composable
+private fun WikiWebPage(osManager: AbyssOSManager, accentColor: Color) {
+    val kb = osManager.securityFramework.knowledgeDatabase
+    val articles = kb.getAllArticles()
+    var selectedArticle by remember { mutableStateOf(articles.firstOrNull()) }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        Text(text = "=== ABYSSOS TECHNICAL WIKI & DOCUMENTATION PORTAL ===", color = CyberCyan, fontSize = 15.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+        Text(text = "Official System Architecture & Security Manuals", color = TextMuted, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Row(modifier = Modifier.fillMaxSize()) {
+            // Article List
+            LazyColumn(
+                modifier = Modifier
+                    .width(220.dp)
+                    .fillMaxHeight()
+                    .padding(end = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                items(articles) { art ->
+                    val isSel = art.id == selectedArticle?.id
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(if (isSel) accentColor.copy(alpha = 0.2f) else AbyssSurface)
+                            .border(0.5.dp, if (isSel) accentColor else Color.Transparent, RoundedCornerShape(6.dp))
+                            .clickable { selectedArticle = art }
+                            .padding(8.dp)
+                    ) {
+                        Column {
+                            Text(art.title, color = if (isSel) accentColor else TextPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                            Text(art.category, color = TextMuted, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
+                        }
+                    }
+                }
+            }
+
+            // Article Content Reader
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(AbyssSurface)
+                    .padding(12.dp)
+            ) {
+                val art = selectedArticle
+                if (art != null) {
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        item {
+                            Text(art.title, color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                            Text("Category: ${art.category} | Tags: ${art.tags.joinToString(", ")}", color = CyberCyan, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text(art.content, color = TextPrimary, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+                        }
+                    }
+                }
+            }
+        }
     }
 }

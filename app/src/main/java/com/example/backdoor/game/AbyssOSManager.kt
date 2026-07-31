@@ -67,6 +67,7 @@ class AbyssOSManager(
     val commandExecutor = CommandExecutor(commandRegistry)
     val networkEngine = com.example.backdoor.network.engine.AbyssNetworkEngine()
     val corporateRepository = com.example.backdoor.corporate.CorporateGridRepository()
+    val securityFramework = com.example.backdoor.security.core.OffensiveSecurityFramework(scope, vfs)
 
     private val _osState = MutableStateFlow(OsState.BOOTING)
     val osState: StateFlow<OsState> = _osState.asStateFlow()
@@ -111,7 +112,8 @@ class AbyssOSManager(
 
     init {
         corporateRepository.registerWithNetworkEngine(networkEngine)
-        addSystemLog("KERNEL", "AbyssOS 0.6.0 Corporate Grid Subsystem initialized.", LogLevel.INFO)
+        securityFramework.updateVfs(vfs)
+        addSystemLog("KERNEL", "AbyssOS 0.7.0 Offensive Security Framework initialized.", LogLevel.INFO)
         startStatusTicker()
 
         scope.launch {

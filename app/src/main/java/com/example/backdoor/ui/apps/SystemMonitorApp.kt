@@ -64,7 +64,7 @@ fun SystemMonitorApp(
             .padding(10.dp)
     ) {
         Text(
-            text = "=== SYSTEM MONITOR | AbyssOS 0.6.0 ===",
+            text = "=== SYSTEM MONITOR | AbyssOS 0.7.0 ===",
             color = accentColor,
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
@@ -130,6 +130,62 @@ fun SystemMonitorApp(
                     Column(horizontalAlignment = Alignment.End) {
                         Text("Grid Status: NOMINAL", color = StatusConnected, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
                         Text("Virtual Link: 10 Gbps", color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Security Framework Telemetry Card
+        val secTasks by osManager.securityFramework.activeTasks.collectAsState()
+        val secReports by osManager.securityFramework.completedReports.collectAsState()
+        val runningCount = secTasks.count { it.status == com.example.backdoor.security.framework.TaskStatus.RUNNING }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(6.dp))
+                .background(AbyssCard)
+                .border(0.5.dp, TechPurple.copy(alpha = 0.5f), RoundedCornerShape(6.dp))
+                .padding(10.dp)
+        ) {
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "OFFENSIVE SECURITY TELEMETRY ENGINE (v0.7.0)",
+                        color = TechPurple,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace
+                    )
+                    Text(
+                        text = if (runningCount > 0) "ANALYSIS IN PROGRESS" else "SECURITY ENGINE IDLE",
+                        color = if (runningCount > 0) StatusConnected else TextMuted,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace
+                    )
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text("Active Tasks: ${secTasks.size}", color = TextPrimary, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                        Text("Running: $runningCount", color = CyberCyan, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                    }
+                    Column {
+                        Text("Audit Reports: ${secReports.size}", color = StatusConnected, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                        Text("Modules Loaded: 4", color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text("Security Posture: AUDITED", color = StatusConnected, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                        Text("Saved VFS Reports: /home/operator/reports/", color = TextMuted, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
                     }
                 }
             }
