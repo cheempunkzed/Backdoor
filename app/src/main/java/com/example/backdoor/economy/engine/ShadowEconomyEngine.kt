@@ -6,6 +6,8 @@ import kotlinx.coroutines.launch
 import com.example.backdoor.economy.models.*
 import com.example.backdoor.core.SystemEventBus
 import com.example.backdoor.core.SystemEvent
+import org.json.JSONArray
+import org.json.JSONObject
 
 class ShadowEconomyEngine(
     private val scope: CoroutineScope,
@@ -104,5 +106,78 @@ class ShadowEconomyEngine(
             issuer = "System",
             completionCriteria = "Auto-complete"
         ))
+    }
+
+    fun serializeToJson(): String {
+        val root = org.json.JSONObject()
+        
+        // Wallet balances
+        val balancesObj = org.json.JSONObject()
+        val currentBalances = walletManager.balances.value
+        for ((currency, bal) in currentBalances) {
+            balancesObj.put(currency.name, bal)
+        }
+        root.put("balances", balancesObj)
+        
+        // Wallet transactions
+        val txsArr = org.json.JSONArray()
+        val currentTxs = walletManager.transactions.value
+        for (tx in currentTxs) {
+            val txObj = org.json.JSONObject()
+            txObj.put("id", tx.id)
+            txObj.put("timestamp", tx.timestamp)
+            txObj.put("amount", tx.amount)
+            txObj.put("currency", tx.currency.name)
+            txObj.put("description", tx.description)
+            txObj.put("isIncoming", tx.isIncoming)
+            txObj.put("status", tx.status.name)
+            txsArr.put(txObj)
+        }
+        root.put("transactions", txsArr)
+        
+        return root.toString()
+    }
+
+    fun deserializeFromJson(json: String) {
+        try {
+            val root = org.json.JSONObject(json)
+            
+            // Wallet balances
+            val balances = mutableMapOf<com.example.backdoor.economy.models.CurrencyType, Long>()
+            if (root.has("balances")) {
+                val bObj = root.getJSONObject("balances")
+                for (key in bObj.keys()) {
+                    try {
+                        val currency = com.example.backdoor.economy.models.CurrencyType.valueOf(key)
+                        val bal = bObj.getLong(key)
+                        balances[currency] = bal
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            }
+            
+            // Wallet transactions
+            val txs = mutableListOf<com.example.backdoor.economy.models.Transaction>()
+            if (root.has("transactions")) {
+                val txsArr = root.getJSONArray("transactions")
+                for (i in 0 until txsArr.length()) {
+                    val txObj = txsArr.getJSONObject(i)
+                    txs.add(com.example.backdoor.economy.models.Transaction(
+                        id = txObj.getString("id"),
+                        timestamp = txObj.getLong("timestamp"),
+                        amount = txObj.getLong("amount"),
+                        currency = com.example.backdoor.economy.models.CurrencyType.valueOf(txObj.getString("currency")),
+                        description = txObj.getString("description"),
+                        isIncoming = txObj.getBoolean("isIncoming"),
+                        status = com.example.backdoor.economy.models.TransactionStatus.valueOf(txObj.getString("status"))
+                    ))
+                }
+            }
+            
+            walletManager.restore(balances, txs)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 }

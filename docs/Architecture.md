@@ -41,4 +41,4 @@ Backdoor is structured as an offline-first modular OS simulation built on modern
 4. **Terminal Engine (`com.example.backdoor.terminal`)**: Lexical command parser, context executor, auto-complete engine, built-in POSIX/Net utilities.
 5. **Persistence (`com.example.backdoor.save`)**: Encrypted & memory fallback save manager storing user profiles, VFS states, and network topology snapshots across app reboots.
 
-- **Shadow Economy (v0.9.0)**: Contracts, Market, Wallet, Inventory, Mail, News.
+- **Living Grid (v1.0.0)**: Contracts, Market, Wallet, Inventory, Mail, News.

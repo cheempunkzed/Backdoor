@@ -244,10 +244,10 @@ fun BrowserApp(
                     WikiWebPage(osManager = osManager, accentColor = accentColor)
                 }
                 corporateOrg != null -> {
-                    CorporateWebPage(org = corporateOrg, accentColor = accentColor)
+                    CorporateWebPage(org = corporateOrg, osManager = osManager, accentColor = accentColor)
                 }
                 resolvedIp != null && targetNode != null -> {
-                    NodeWebPage(node = targetNode, accentColor = accentColor)
+                    NodeWebPage(node = targetNode, osManager = osManager, accentColor = accentColor)
                 }
                 else -> {
                     ErrorWebPage(url = currentUrl)
@@ -258,7 +258,12 @@ fun BrowserApp(
 }
 
 @Composable
-private fun CorporateWebPage(org: Organization, accentColor: Color) {
+private fun CorporateWebPage(org: Organization, osManager: AbyssOSManager, accentColor: Color) {
+    var selectedTab by remember { mutableStateOf("OVERVIEW") }
+    val orgAi = osManager.livingWorldEngine.organizationsAI.collectAsState().value[org.id]
+    val employees = orgAi?.employees?.collectAsState()?.value ?: emptyList()
+    val incidents = osManager.livingWorldEngine.incidents.collectAsState().value.filter { it.organizationId == org.id }
+
     Column(modifier = Modifier.fillMaxSize()) {
         // Corporate Brand Header
         Row(
@@ -295,107 +300,144 @@ private fun CorporateWebPage(org: Organization, accentColor: Color) {
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // Mission & Infrastructure Overview Card
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(6.dp))
-                .background(AbyssSurface)
-                .padding(12.dp)
-        ) {
-            Column {
+        // Tabs
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            listOf("OVERVIEW", "EMPLOYEES", "INCIDENTS").forEach { tab ->
                 Text(
-                    text = "CORPORATE MISSION STATEMENT",
-                    color = TextMuted,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = org.description,
-                    color = TextPrimary,
-                    fontSize = 12.sp,
-                    fontFamily = FontFamily.Monospace
+                    text = tab,
+                    color = if (selectedTab == tab) accentColor else TextMuted,
+                    fontFamily = FontFamily.Monospace,
+                    modifier = Modifier.clickable { selectedTab = tab }
                 )
             }
         }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Grid Specs Row
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(AbyssSurface)
-                    .padding(10.dp)
-            ) {
-                Column {
-                    Text("SECURITY CLEARANCE", color = TextMuted, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
-                    Text("Tier ${org.securityLevel} Encrypted", color = StatusConnected, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
-                }
-            }
-
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(AbyssSurface)
-                    .padding(10.dp)
-            ) {
-                Column {
-                    Text("ACTIVE DATA CENTERS", color = TextMuted, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
-                    Text("${org.dataCenters.size} Grid Facilities", color = CyberCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
-                }
-            }
-
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(AbyssSurface)
-                    .padding(10.dp)
-            ) {
-                Column {
-                    Text("MANAGED NODES", color = TextMuted, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
-                    Text("${org.servers.size} Active Servers", color = TechPurple, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
-                }
-            }
-        }
-
+        
         Spacer(modifier = Modifier.height(14.dp))
 
-        Text(
-            text = "PUBLIC CORPORATE SERVER NODES",
-            color = TechPurple,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
-            fontFamily = FontFamily.Monospace
-        )
+        if (selectedTab == "OVERVIEW") {
+            // Mission & Infrastructure Overview Card
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(AbyssSurface)
+                    .padding(12.dp)
+            ) {
+                Column {
+                    Text(
+                        text = "CORPORATE MISSION STATEMENT",
+                        color = TextMuted,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = org.description,
+                        color = TextPrimary,
+                        fontSize = 12.sp,
+                        fontFamily = FontFamily.Monospace
+                    )
+                }
+            }
 
-        Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            items(org.servers.take(8)) { server ->
-                Row(
+            // Grid Specs Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
+                        .weight(1f)
                         .clip(RoundedCornerShape(6.dp))
                         .background(AbyssSurface)
-                        .padding(10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(10.dp)
                 ) {
                     Column {
-                        Text(text = server.domain, color = TextPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
-                        Text(text = "IP: ${server.ip} • Class: ${server.type.displayName}", color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                        Text("SECURITY CLEARANCE", color = TextMuted, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
+                        Text("Tier ${org.securityLevel} Encrypted", color = StatusConnected, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
                     }
-                    Text(text = "ONLINE", color = StatusConnected, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                }
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(AbyssSurface)
+                        .padding(10.dp)
+                ) {
+                    Column {
+                        Text("ACTIVE DATA CENTERS", color = TextMuted, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
+                        Text("${org.dataCenters.size} Grid Facilities", color = CyberCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(AbyssSurface)
+                        .padding(10.dp)
+                ) {
+                    Column {
+                        Text("MANAGED NODES", color = TextMuted, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
+                        Text("${org.servers.size} Active Servers", color = TechPurple, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Text(
+                text = "PUBLIC CORPORATE SERVER NODES",
+                color = TechPurple,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Monospace
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                items(org.servers.take(8)) { server ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(AbyssSurface)
+                            .padding(10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(text = server.domain, color = TextPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                            Text(text = "IP: ${server.ip} • Class: ${server.type.displayName}", color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                        }
+                        Text(text = "ONLINE", color = StatusConnected, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                    }
+                }
+            }
+        } else if (selectedTab == "EMPLOYEES") {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                items(employees) { emp ->
+                    Column(modifier = Modifier.fillMaxWidth().background(AbyssSurface).padding(8.dp)) {
+                        Text("${emp.name} - ${emp.position}", color = TextPrimary, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+                        Text("Department: ${emp.position.department} | At Work: ${emp.isAtWork}", color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                    }
+                }
+            }
+        } else if (selectedTab == "INCIDENTS") {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (incidents.isEmpty()) {
+                    item { Text("No active incidents.", color = StatusConnected, fontFamily = FontFamily.Monospace) }
+                }
+                items(incidents) { inc ->
+                    Column(modifier = Modifier.fillMaxWidth().background(AbyssSurface).padding(8.dp)) {
+                        Text("${inc.type} [${inc.severity}]", color = NeonRed, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+                        Text("Time: ${inc.timestamp} | Target: ${inc.targetServerId ?: "N/A"}", color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                    }
                 }
             }
         }
@@ -489,16 +531,56 @@ private fun AboutNetworkPage(osManager: AbyssOSManager, accentColor: Color) {
 }
 
 @Composable
-private fun NodeWebPage(node: com.example.backdoor.network.models.NetworkNode, accentColor: Color) {
+private fun NodeWebPage(node: com.example.backdoor.network.models.NetworkNode, osManager: AbyssOSManager, accentColor: Color) {
     Column(modifier = Modifier.fillMaxSize()) {
         Text(text = node.hostname.uppercase(), color = CyberCyan, fontSize = 18.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
         Text(text = "IP Address: ${node.ip} | Type: ${node.nodeType.displayName}", color = TextMuted, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
-
+        
         Spacer(modifier = Modifier.height(16.dp))
-
+        
+        val seed = node.ip.hashCode()
+        val ramUsage = (Math.abs(seed) % 100)
+        val storageUsage = (Math.abs(seed * 2) % 100)
+        val processes = Math.abs(seed * 3) % 200 + 50
+        val firewallStatus = if (node.securityLevel > 2) "STRICT" else "MODERATE"
+        
         Text(text = "Welcome to ${node.hostname} HTTP portal.", color = TextPrimary, fontSize = 13.sp, fontFamily = FontFamily.Monospace)
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(text = "Security Clearance: Level ${node.securityLevel}", color = StatusConnected, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.weight(1f).background(AbyssSurface).padding(8.dp)) {
+                Text("RESOURCES", color = accentColor, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text("RAM: $ramUsage% utilized", color = TextPrimary, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                Text("Storage: $storageUsage% full", color = TextPrimary, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                Text("Procs: $processes running", color = TextPrimary, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+            }
+            Column(modifier = Modifier.weight(1f).background(AbyssSurface).padding(8.dp)) {
+                Text("SECURITY", color = accentColor, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text("Level: ${node.securityLevel}", color = StatusConnected, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                Text("Firewall: $firewallStatus", color = TextPrimary, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(text = "RUNNING SERVICES", color = accentColor, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+        Spacer(modifier = Modifier.height(4.dp))
+        if (node.services.isEmpty()) {
+            Text(text = "No open services detected.", color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+        } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                items(node.services) { svc ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().background(AbyssSurface).padding(8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(text = svc.name, color = TextPrimary, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                        Text(text = "Port ${svc.port} [${svc.banner}]", color = TechPurple, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -603,7 +685,7 @@ private fun OnionWebPage(
 ) {
     val darknet = osManager.darknetEngine
     val hiddenServices by darknet.hiddenServices.collectAsState()
-    val threads by darknet.forumThreads.collectAsState()
+    val threads = osManager.livingWorldEngine.forumSimulation.threads.collectAsState().value
     val marketListings by darknet.marketListings.collectAsState()
     val rep by darknet.playerReputation.collectAsState()
     val relays by darknet.relayNodes.collectAsState()
@@ -852,7 +934,7 @@ private fun OnionWebPage(
                                             .background(TechPurple)
                                             .clickable {
                                                 if (replyInput.isNotBlank()) {
-                                                    darknet.postReplyToThread(activeThread.id, replyInput, "operator")
+                                                    osManager.livingWorldEngine.forumSimulation.postReplyToThread(activeThread.id, replyInput, "operator")
                                                     replyInput = ""
                                                 }
                                             }

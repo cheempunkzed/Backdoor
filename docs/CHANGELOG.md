@@ -1,4 +1,4 @@
-## [0.9.0] - 2026-07-31
+## [1.0.0] - 2026-07-31
 ### Development Milestone 9: Shadow Economy
 #### Added
 - **ShadowEconomyEngine**: Central financial simulator governing market, contracts, and banking.

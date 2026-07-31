@@ -39,6 +39,9 @@ interface SaveManager {
 
     suspend fun getEconomyJson(): String?
     suspend fun saveEconomyJson(json: String): Boolean
+
+    suspend fun getLivingWorldJson(): String?
+    suspend fun saveLivingWorldJson(json: String): Boolean
 }
 
 class MemorySaveManager(
@@ -55,6 +58,7 @@ class MemorySaveManager(
     private var storedSecurityJson: String? = null
     private var storedDarknetJson: String? = null
     private var storedEconomyJson: String? = null
+    private var storedLivingWorldJson: String? = null
 
     private val _currentSave = MutableStateFlow<SaveSlotEntity?>(
         SaveSlotEntity(
@@ -204,6 +208,15 @@ class MemorySaveManager(
 
     override suspend fun saveEconomyJson(json: String): Boolean {
         storedEconomyJson = json
+        return true
+    }
+
+    override suspend fun getLivingWorldJson(): String? {
+        return storedLivingWorldJson
+    }
+
+    override suspend fun saveLivingWorldJson(json: String): Boolean {
+        storedLivingWorldJson = json
         return true
     }
 }

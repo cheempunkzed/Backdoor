@@ -78,6 +78,14 @@ class AbyssOSManager(
     val darknetEngine = com.example.backdoor.darknet.engine.OnionNetworkEngine()
     val eventBus = com.example.backdoor.core.SystemEventBus()
     val economyEngine = com.example.backdoor.economy.engine.ShadowEconomyEngine(scope, eventBus)
+    val gameClock = com.example.backdoor.core.GameClock(scope)
+    val livingWorldEngine = com.example.backdoor.simulation.engine.LivingWorldEngine(
+        scope = scope,
+        eventBus = eventBus,
+        gameClock = gameClock,
+        corporateManager = corporateRepository,
+        economyEngine = economyEngine
+    )
 
     private val _osState = MutableStateFlow(OsState.BOOTING)
     val osState: StateFlow<OsState> = _osState.asStateFlow()
@@ -124,7 +132,7 @@ class AbyssOSManager(
         corporateRepository.registerWithNetworkEngine(networkEngine)
         securityFramework.updateVfs(vfs)
         securityFramework.darkNetHook = darknetEngine
-        addSystemLog("KERNEL", "AbyssOS 0.9.0 Shadow Economy System initialized.", LogLevel.INFO)
+        addSystemLog("KERNEL", "AbyssOS 1.0.0 Living Grid System initialized.", LogLevel.INFO)
         startStatusTicker()
 
         scope.launch {
@@ -139,6 +147,19 @@ class AbyssOSManager(
             val networkJson = saveManager.getNetworkTopologyJson()
             if (!networkJson.isNullOrEmpty()) {
                 networkEngine.repository.deserializeFromJson(networkJson)
+            }
+            
+            val livingWorldJson = saveManager.getLivingWorldJson()
+            if (!livingWorldJson.isNullOrEmpty()) {
+                livingWorldEngine.deserializeFromJson(livingWorldJson)
+            } else {
+                livingWorldEngine.initWorld()
+            }
+            livingWorldEngine.startSimulation()
+
+            val economyJson = saveManager.getEconomyJson()
+            if (!economyJson.isNullOrEmpty()) {
+                economyEngine.deserializeFromJson(economyJson)
             }
 
             // Restore Dock Pinned Apps
@@ -191,6 +212,15 @@ class AbyssOSManager(
             vfs.updateEvent.collect {
                 val json = vfs.serializeToJson()
                 saveManager.saveVfsDataJson(json)
+            }
+        }
+        
+        // Background auto-save for engine states
+        scope.launch {
+            while(true) {
+                delay(10000)
+                saveManager.saveLivingWorldJson(livingWorldEngine.serializeToJson())
+                saveManager.saveEconomyJson(economyEngine.serializeToJson())
             }
         }
         

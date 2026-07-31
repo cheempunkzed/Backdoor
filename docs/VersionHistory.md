@@ -1,4 +1,4 @@
-## v0.9.0 - SHADOW ECONOMY (2026-07-31)
+## v1.0.0 - LIVING GRID (2026-07-31)
 - Implemented ShadowEconomyEngine governing dynamic markets and prices.
 - Added 6 new applications: Wallet, Contracts, Marketplace, Mail, News, Inventory.
 - Inter-app integration via SystemEventBus for contract payouts and purchases.
