@@ -313,7 +313,7 @@ fun SettingsApp(
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(text = "OS Name: AbyssOS", color = accentColor, fontSize = 12.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
-            Text(text = "Version: 0.8.0 (Codename: ONION NETWORK)", color = TextPrimary, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+            Text(text = "Version: 0.9.0 (Codename: SHADOW ECONOMY)", color = TextPrimary, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
             Text(text = "Virtual Network Subsystem: AbyssNet Dark Layer 8.0 Active", color = accentColor, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
             Text(text = "Filesystem: AbyssFS Virtual File System V2 (Persistent)", color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
             Text(text = "Kernel Build: #2080-STAGE8-RELEASE", color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)

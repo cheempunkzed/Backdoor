@@ -1,3 +1,9 @@
+## v0.9.0 - SHADOW ECONOMY (2026-07-31)
+- Implemented ShadowEconomyEngine governing dynamic markets and prices.
+- Added 6 new applications: Wallet, Contracts, Marketplace, Mail, News, Inventory.
+- Inter-app integration via SystemEventBus for contract payouts and purchases.
+- Supported multiple currencies (CR, ABC, CT, RT).
+
 # Version History
 
 ## v0.8.1 - SYSTEM INTEGRATION (2026-07-31)

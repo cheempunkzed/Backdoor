@@ -323,6 +323,12 @@ private fun DraggableWindowWrapper(
                 OsApp.DARKNET -> DarkNetApp(osManager = osManager, accentColor = accentColor)
                 OsApp.BROWSER -> BrowserApp(osManager = osManager, accentColor = accentColor)
                 OsApp.NETWORK -> NetworkApp(osManager = osManager, accentColor = accentColor)
+                OsApp.WALLET -> com.example.backdoor.ui.apps.economy.WalletApp(osManager = osManager, accentColor = accentColor)
+                OsApp.CONTRACTS -> com.example.backdoor.ui.apps.economy.ContractsApp(osManager = osManager, accentColor = accentColor)
+                OsApp.MARKETPLACE -> com.example.backdoor.ui.apps.economy.MarketplaceApp(osManager = osManager, accentColor = accentColor)
+                OsApp.MAIL -> com.example.backdoor.ui.apps.economy.MailApp(osManager = osManager, accentColor = accentColor)
+                OsApp.NEWS -> com.example.backdoor.ui.apps.economy.NewsApp(osManager = osManager, accentColor = accentColor)
+                OsApp.INVENTORY -> com.example.backdoor.ui.apps.economy.InventoryApp(osManager = osManager, accentColor = accentColor)
             }
         }
     }

@@ -46,8 +46,15 @@ enum class OsApp(val appName: String, val iconName: String) {
     DARKNET("DarkNet", "ic_security"),
     SETTINGS("Settings", "ic_settings"),
     LOGS("Logs", "ic_list"),
-    SYSTEM_MONITOR("System Monitor", "ic_monitor")
+    SYSTEM_MONITOR("System Monitor", "ic_monitor"),
+    WALLET("Wallet", "ic_wallet"),
+    CONTRACTS("Contracts", "ic_work"),
+    MARKETPLACE("Marketplace", "ic_shopping_cart"),
+    MAIL("Mail", "ic_mail"),
+    NEWS("News", "ic_news"),
+    INVENTORY("Inventory", "ic_inventory")
 }
+
 
 data class BootLogEntry(
     val text: String,
@@ -70,6 +77,7 @@ class AbyssOSManager(
     val securityFramework = com.example.backdoor.security.core.OffensiveSecurityFramework(scope, vfs)
     val darknetEngine = com.example.backdoor.darknet.engine.OnionNetworkEngine()
     val eventBus = com.example.backdoor.core.SystemEventBus()
+    val economyEngine = com.example.backdoor.economy.engine.ShadowEconomyEngine(scope, eventBus)
 
     private val _osState = MutableStateFlow(OsState.BOOTING)
     val osState: StateFlow<OsState> = _osState.asStateFlow()
@@ -116,7 +124,7 @@ class AbyssOSManager(
         corporateRepository.registerWithNetworkEngine(networkEngine)
         securityFramework.updateVfs(vfs)
         securityFramework.darkNetHook = darknetEngine
-        addSystemLog("KERNEL", "AbyssOS 0.8.0 Onion Network Dark Layer initialized.", LogLevel.INFO)
+        addSystemLog("KERNEL", "AbyssOS 0.9.0 Shadow Economy System initialized.", LogLevel.INFO)
         startStatusTicker()
 
         scope.launch {

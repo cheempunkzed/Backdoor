@@ -31,6 +31,12 @@ import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.WifiTethering
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.Work
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Mail
+import androidx.compose.material.icons.filled.Article
+import androidx.compose.material.icons.filled.Inventory
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -248,6 +254,12 @@ fun getAppIconVector(app: OsApp): ImageVector {
         OsApp.SETTINGS -> Icons.Default.Settings
         OsApp.LOGS -> Icons.Default.ListAlt
         OsApp.SYSTEM_MONITOR -> Icons.Default.Monitor
+        OsApp.WALLET -> Icons.Default.AccountBalanceWallet
+        OsApp.CONTRACTS -> Icons.Default.Work
+        OsApp.MARKETPLACE -> Icons.Default.ShoppingCart
+        OsApp.MAIL -> Icons.Default.Mail
+        OsApp.NEWS -> Icons.Default.Article
+        OsApp.INVENTORY -> Icons.Default.Inventory
     }
 }
 

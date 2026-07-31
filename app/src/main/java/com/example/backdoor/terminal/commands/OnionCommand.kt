@@ -36,7 +36,7 @@ class OnionCommand : Command {
         return when (subCmd) {
             "status", "nodes" -> {
                 val sb = StringBuilder()
-                sb.appendLine("=== ABYSSNET ONION NETWORK CIRCUIT STATUS (v0.8.0) ===")
+                sb.appendLine("=== ABYSSNET ONION NETWORK CIRCUIT STATUS (v0.9.0) ===")
                 sb.appendLine("Circuit State: ACTIVE (Encrypted 3-Hop Tunnel)")
                 sb.appendLine("Relay Nodes:")
                 sb.appendLine("  [1] Entry:  OnionRelay-Alpha   [185.220.101.5] (Iceland - 1000 Mbps)")

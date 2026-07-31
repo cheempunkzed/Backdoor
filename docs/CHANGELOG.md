@@ -1,3 +1,13 @@
+## [0.9.0] - 2026-07-31
+### Development Milestone 9: Shadow Economy
+#### Added
+- **ShadowEconomyEngine**: Central financial simulator governing market, contracts, and banking.
+- **Digital Banking (Wallet)**: Handles Credits (CR), AbyssCoin (ABC), and tokens.
+- **Contracts System**: Implements public, freelance, and corporate jobs with rewards.
+- **Digital Marketplace**: Dynamic store for hardware, software, licenses, and cosmetics.
+- **Mail  News Services**: In-OS communications and simulated global events.
+- **New UI Applications**: Wallet, Contracts, Marketplace, Mail, News, Inventory integrated into desktop and taskbar.
+
 # AbyssOS Changelog
 
 All notable changes to the Backdoor project will be documented in this file.

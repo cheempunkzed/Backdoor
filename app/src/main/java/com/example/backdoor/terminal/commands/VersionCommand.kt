@@ -25,7 +25,7 @@ class VersionCommand : Command {
     override suspend fun execute(parsed: ParsedCommand, context: CommandContext): CommandResult {
         return CommandResult(
             output = """
-                AbyssOS Kernel Version: 0.8.0-ONION_NETWORK
+                AbyssOS Kernel Version: 0.9.0-SHADOW_ECONOMY
                 Build Date: 2026.07.31
                 Virtual Architecture: x86_64_abyss
                 Filesystem Engine: AbyssFS V2 Persistent

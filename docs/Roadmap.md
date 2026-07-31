@@ -11,3 +11,6 @@
 - [ ] **Milestone 7: Network Security & Port Scanning (v0.7.0)** - Port scanner, exploit framework, vulnerability database, security clearance levels.
 - [ ] **Milestone 8: DarkNet & Marketplace (v0.8.0)** - Encrypted onion networks, cryptomarket contracts, illegal software repositories.
 - [ ] **Milestone 9: Campaign & Narrative (v0.9.0)** - Story missions, hacking target infrastructure, faction system, dynamic narrative progression.
+
+## Milestone 9: Shadow Economy (Completed)
+- ShadowEconomyEngine, WalletManager, Contracts, Market.

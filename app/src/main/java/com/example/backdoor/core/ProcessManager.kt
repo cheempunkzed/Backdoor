@@ -76,6 +76,12 @@ class ProcessManager(
             OsApp.SETTINGS -> 0.8f to 12.0f
             OsApp.LOGS -> 0.6f to 10.0f
             OsApp.SYSTEM_MONITOR -> 1.8f to 18.0f
+            OsApp.WALLET -> 0.5f to 15.0f
+            OsApp.CONTRACTS -> 0.7f to 18.0f
+            OsApp.MARKETPLACE -> 1.5f to 28.0f
+            OsApp.MAIL -> 0.6f to 12.0f
+            OsApp.NEWS -> 0.4f to 14.0f
+            OsApp.INVENTORY -> 0.6f to 16.0f
         }
 
         val appState: AppState = when (app) {
@@ -87,6 +93,12 @@ class ProcessManager(
             OsApp.NETWORK -> NetworkAppState()
             OsApp.LOGS -> LogsAppState()
             OsApp.SYSTEM_MONITOR -> SystemMonitorAppState()
+            OsApp.WALLET -> WalletAppState()
+            OsApp.CONTRACTS -> ContractsAppState()
+            OsApp.MARKETPLACE -> MarketplaceAppState()
+            OsApp.MAIL -> MailAppState()
+            OsApp.NEWS -> NewsAppState()
+            OsApp.INVENTORY -> InventoryAppState()
         }
 
         val newProc = OSProcess(

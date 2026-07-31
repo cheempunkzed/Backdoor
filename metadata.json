@@ -1,6 +1,6 @@
 {
   "name": "Backdoor",
-  "description": "Cyber security simulation game with virtual OS AbyssOS 0.8.0 Onion Network.",
+  "description": "Cyber security simulation game with virtual OS AbyssOS 0.9.0 Shadow Economy.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

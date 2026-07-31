@@ -142,7 +142,7 @@ class OnionNetworkEngine : DarkNetRoutingHook {
 
         val thread1 = ForumThread(
             id = "thread-1",
-            title = "AbyssOS 0.8.0 Onion Layer Architecture & Relay Circuit Analysis",
+            title = "AbyssOS 0.9.0 Onion Layer Architecture & Relay Circuit Analysis",
             authorHandle = "v0id_walker",
             category = "Network Protocols",
             requiredAccess = AccessLevel.PUBLIC,

@@ -40,3 +40,5 @@ Backdoor is structured as an offline-first modular OS simulation built on modern
 3. **Virtual Network Subsystem (`com.example.backdoor.network`)**: Reactive event-driven networking stack (`AbyssNetworkEngine`) handling nodes, links, DNS resolution, synthetic ping latency, and traceroute hop calculation.
 4. **Terminal Engine (`com.example.backdoor.terminal`)**: Lexical command parser, context executor, auto-complete engine, built-in POSIX/Net utilities.
 5. **Persistence (`com.example.backdoor.save`)**: Encrypted & memory fallback save manager storing user profiles, VFS states, and network topology snapshots across app reboots.
+
+- **Shadow Economy (v0.9.0)**: Contracts, Market, Wallet, Inventory, Mail, News.

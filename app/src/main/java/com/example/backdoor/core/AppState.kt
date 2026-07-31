@@ -43,3 +43,28 @@ class LogsAppState : AppState {
 class SystemMonitorAppState : AppState {
     var selectedTab = mutableStateOf("PROCESSES")
 }
+
+class WalletAppState : AppState {
+    var selectedTab = mutableStateOf("OVERVIEW")
+}
+
+class ContractsAppState : AppState {
+    var selectedTab = mutableStateOf("AVAILABLE")
+}
+
+class MarketplaceAppState : AppState {
+    var selectedCategory = mutableStateOf("ALL")
+}
+
+class MailAppState : AppState {
+    var selectedMessageId = mutableStateOf<String?>(null)
+}
+
+class NewsAppState : AppState {
+    var selectedCategory = mutableStateOf("ALL")
+}
+
+class InventoryAppState : AppState {
+    var selectedFilter = mutableStateOf("ALL")
+}
+
