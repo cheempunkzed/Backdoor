@@ -2,11 +2,27 @@ package com.example.backdoor.terminal
 
 import com.example.backdoor.core.SystemStatus
 import com.example.backdoor.filesystem.VirtualFileSystem
+import com.example.backdoor.i18n.StringKey
+
+data class ManPage(
+    val name: String,
+    val synopsis: String,
+    val description: String,
+    val options: List<Pair<String, String>> = emptyList(),
+    val examples: List<String> = emptyList()
+)
+
+enum class CommandCategory(val title: String) {
+    FILESYSTEM("FILESYSTEM COMMANDS"),
+    SYSTEM("SYSTEM COMMANDS"),
+    UTILITY("UTILITY COMMANDS")
+}
 
 data class CommandContext(
     val vfs: VirtualFileSystem,
     val systemStatus: SystemStatus,
     val commandRegistry: CommandRegistry,
+    val session: TerminalSession,
     val onExitRequested: () -> Unit = {},
     val onOpenAppRequested: (String) -> Unit = {}
 )
@@ -27,7 +43,10 @@ data class CommandResult(
 
 interface Command {
     val name: String
-    val description: String
+    val aliases: List<String> get() = emptyList()
+    val category: CommandCategory get() = CommandCategory.SYSTEM
+    val descriptionKey: StringKey
     val usage: String
-    suspend fun execute(args: List<String>, context: CommandContext): CommandResult
+    val manPage: ManPage
+    suspend fun execute(parsed: ParsedCommand, context: CommandContext): CommandResult
 }

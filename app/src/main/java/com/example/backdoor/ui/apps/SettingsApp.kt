@@ -313,9 +313,10 @@ fun SettingsApp(
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(text = "OS Name: AbyssOS", color = accentColor, fontSize = 12.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
-            Text(text = "Version: 0.3.0 (Desktop Environment 2.0 & Process Manager)", color = TextPrimary, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+            Text(text = "Version: 0.4.0 (Codename: TERMINAL CORE)", color = TextPrimary, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+            Text(text = "Terminal Core: V4.0 Active with Extensible Parser & Registry", color = accentColor, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
             Text(text = "Filesystem: AbyssFS Virtual File System V2 (Persistent)", color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
-            Text(text = "Kernel Build: #2050-STAGE4-RELEASE", color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+            Text(text = "Kernel Build: #2050-STAGE5-RELEASE", color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
         }
 
         Spacer(modifier = Modifier.height(20.dp))

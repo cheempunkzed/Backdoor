@@ -433,7 +433,7 @@ private fun LandscapeSideWidget(
 
         WidgetDetailRow("NODE ID", status.hostname)
         WidgetDetailRow("OPERATOR", status.userHandle)
-        WidgetDetailRow("KERNEL", "0.3.0-AbyssFS")
+        WidgetDetailRow("KERNEL", "0.4.0-TerminalCore")
         WidgetDetailRow("UPTIME", "${status.uptimeSeconds}s")
         WidgetDetailRow("MEMORY", "${status.usedRamMb}MB")
 
@@ -447,7 +447,7 @@ private fun LandscapeSideWidget(
                 .padding(8.dp)
         ) {
             Text(
-                text = "Backdoor Phase 2 Kernel online. Multi-window Process Manager active.",
+                text = "Backdoor Milestone 5 Terminal Core active. UNIX Shell Engine running.",
                 color = TextMuted,
                 fontSize = 10.sp,
                 fontFamily = FontFamily.Monospace

@@ -1,5 +1,6 @@
 package com.example.backdoor.ui.apps
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -26,10 +28,23 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ArrowDropUp
+import androidx.compose.material.icons.filled.KeyboardTab
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,6 +54,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
@@ -49,6 +66,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.backdoor.game.AbyssOSManager
 import com.example.backdoor.terminal.CommandAction
+import com.example.backdoor.terminal.PromptStyle
+import com.example.backdoor.terminal.TerminalSettings
 import com.example.ui.theme.AbyssBackground
 import com.example.ui.theme.AbyssSurfaceVariant
 import com.example.ui.theme.NeonRed
@@ -71,13 +90,19 @@ fun TerminalApp(
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
+    val settingsState by osManager.settingsRepository.settings.collectAsState()
+    val termSettings = settingsState.terminalSettings
+
     var inputCommand by remember { mutableStateOf("") }
+    var historyIndex by remember { mutableIntStateOf(-1) }
+    var showSettingsModal by remember { mutableStateOf(false) }
+
     val history = remember {
         mutableStateListOf(
             TerminalHistoryItem(
-                prompt = "system@abyssos:~",
+                prompt = osManager.terminalSession.formatPrompt(termSettings.promptStyle),
                 command = "version",
-                output = "AbyssOS 0.1 Alpha Terminal Engine. Type 'help' for available commands.",
+                output = "AbyssOS 0.4.0 Terminal Core initialized. Type 'help' for command list.",
                 error = null
             )
         )
@@ -86,16 +111,7 @@ fun TerminalApp(
     LaunchedEffect(Unit) {
         val saved = osManager.saveManager.getTerminalHistory()
         if (saved.isNotEmpty()) {
-            saved.forEach { cmd ->
-                history.add(
-                    TerminalHistoryItem(
-                        prompt = "${osManager.systemStatus.value.userHandle}@${osManager.systemStatus.value.hostname}:~$",
-                        command = cmd,
-                        output = "Loaded command from persistent session history.",
-                        error = null
-                    )
-                )
-            }
+            osManager.commandExecutor.setHistory(saved)
         }
     }
 
@@ -105,7 +121,7 @@ fun TerminalApp(
     val infiniteTransition = rememberInfiniteTransition(label = "cursor")
     val cursorAlpha by infiniteTransition.animateFloat(
         initialValue = 1f,
-        targetValue = 0f,
+        targetValue = if (termSettings.cursorBlink) 0f else 1f,
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = 500),
             repeatMode = RepeatMode.Reverse
@@ -113,8 +129,16 @@ fun TerminalApp(
         label = "cursorAlpha"
     )
 
-    val cwd = osManager.vfs.getCwd()
-    val promptText = "${osManager.systemStatus.value.userHandle}@${osManager.systemStatus.value.hostname}:${cwd}$ "
+    val promptText = osManager.terminalSession.formatPrompt(termSettings.promptStyle)
+
+    // Autocomplete Suggestions
+    val suggestions = remember(inputCommand) {
+        if (inputCommand.isNotEmpty()) {
+            osManager.commandRegistry.getAutocompleteSuggestions(inputCommand, osManager.terminalSession)
+        } else {
+            emptyList()
+        }
+    }
 
     val submitCommand = { cmdToRun: String ->
         val cmd = cmdToRun.trim()
@@ -136,6 +160,10 @@ fun TerminalApp(
                     )
                 }
 
+                // Persist command history
+                val executedHistory = osManager.commandExecutor.getHistory()
+                osManager.saveManager.saveTerminalHistory(executedHistory)
+
                 if (result.action is CommandAction.ExitTerminal) {
                     osManager.closeActiveApp()
                 } else if (result.action is CommandAction.OpenApp) {
@@ -144,61 +172,157 @@ fun TerminalApp(
                 }
 
                 inputCommand = ""
+                historyIndex = -1
                 listState.animateScrollToItem((history.size - 1).coerceAtLeast(0))
             }
         }
     }
 
+    val handleTabAutocomplete = {
+        if (suggestions.isNotEmpty()) {
+            val best = suggestions.first()
+            val tokens = inputCommand.trimStart().split("\\s+".toRegex())
+            if (tokens.size <= 1) {
+                inputCommand = "$best "
+            } else {
+                val prefix = tokens.dropLast(1).joinToString(" ")
+                inputCommand = "$prefix $best "
+            }
+        }
+    }
+
+    val navigateHistoryUp = {
+        val allHistory = osManager.commandExecutor.getHistory()
+        if (allHistory.isNotEmpty()) {
+            if (historyIndex == -1) {
+                historyIndex = allHistory.size - 1
+            } else if (historyIndex > 0) {
+                historyIndex--
+            }
+            if (historyIndex in allHistory.indices) {
+                inputCommand = allHistory[historyIndex]
+            }
+        }
+    }
+
+    val navigateHistoryDown = {
+        val allHistory = osManager.commandExecutor.getHistory()
+        if (historyIndex != -1) {
+            if (historyIndex < allHistory.size - 1) {
+                historyIndex++
+                inputCommand = allHistory[historyIndex]
+            } else {
+                historyIndex = -1
+                inputCommand = ""
+            }
+        }
+    }
+
+    val effectiveTextColor = try {
+        Color(android.graphics.Color.parseColor(termSettings.textColorHex))
+    } catch (e: Exception) {
+        accentColor
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(AbyssBackground)
+            .background(AbyssBackground.copy(alpha = termSettings.terminalOpacity))
             .padding(8.dp)
     ) {
-        // Command Output Stream
-        LazyColumn(
-            state = listState,
+        // Top Toolbar
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f)
+                .padding(bottom = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            items(history) { item ->
-                Column(modifier = Modifier.padding(vertical = 4.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = item.prompt,
-                            color = accentColor,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = item.command,
-                            color = TextPrimary,
-                            fontSize = 13.sp,
-                            fontFamily = FontFamily.Monospace
-                        )
-                    }
+            Text(
+                text = "TERMINAL CORE 0.4.0",
+                color = effectiveTextColor.copy(alpha = 0.7f),
+                fontSize = 11.sp,
+                fontFamily = FontFamily.Monospace,
+                fontWeight = FontWeight.Bold
+            )
 
-                    item.output?.let { out ->
-                        Text(
-                            text = out,
-                            color = accentColor.copy(alpha = 0.9f),
-                            fontSize = 12.sp,
-                            fontFamily = FontFamily.Monospace,
-                            modifier = Modifier.padding(start = 8.dp, top = 2.dp)
-                        )
-                    }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = { showSettingsModal = !showSettingsModal }, modifier = Modifier.size(28.dp)) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = "Terminal Settings",
+                        tint = effectiveTextColor,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+        }
 
-                    item.error?.let { err ->
-                        Text(
-                            text = err,
-                            color = NeonRed,
-                            fontSize = 12.sp,
-                            fontFamily = FontFamily.Monospace,
-                            modifier = Modifier.padding(start = 8.dp, top = 2.dp)
-                        )
+        // Settings Modal View
+        AnimatedVisibility(visible = showSettingsModal) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(AbyssSurfaceVariant)
+                    .padding(8.dp)
+            ) {
+                Text("TERMINAL SETTINGS", color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Cursor Blink", color = TextMuted, fontSize = 11.sp)
+                    Switch(
+                        checked = termSettings.cursorBlink,
+                        onCheckedChange = {
+                            osManager.settingsRepository.updateTerminalSettings(termSettings.copy(cursorBlink = it))
+                        }
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Font Size (${termSettings.fontSize} sp)", color = TextMuted, fontSize = 11.sp)
+                    Slider(
+                        value = termSettings.fontSize.toFloat(),
+                        onValueChange = {
+                            osManager.settingsRepository.updateTerminalSettings(termSettings.copy(fontSize = it.toInt()))
+                        },
+                        valueRange = 10f..18f,
+                        modifier = Modifier.width(120.dp)
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Prompt Style", color = TextMuted, fontSize = 11.sp)
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        items(PromptStyle.entries.toTypedArray()) { style ->
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(if (termSettings.promptStyle == style) effectiveTextColor else AbyssBackground)
+                                    .clickable {
+                                        osManager.settingsRepository.updateTerminalSettings(termSettings.copy(promptStyle = style))
+                                    }
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = style.name,
+                                    color = if (termSettings.promptStyle == style) AbyssBackground else TextPrimary,
+                                    fontSize = 10.sp
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -206,86 +330,220 @@ fun TerminalApp(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        // Quick Command Chips
-        val quickCommands = listOf("help", "ls", "pwd", "tree", "version", "whoami", "clear")
-        LazyRow(
+        // Output Stream with Copy / Selection Container
+        SelectionContainer(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                .weight(1f)
         ) {
-            items(quickCommands) { cmd ->
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(AbyssSurfaceVariant)
-                        .border(0.5.dp, accentColor.copy(alpha = 0.4f), RoundedCornerShape(4.dp))
-                        .clickable { submitCommand(cmd) }
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = cmd,
-                        color = accentColor,
-                        fontSize = 11.sp,
-                        fontFamily = FontFamily.Monospace
-                    )
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(history) { item ->
+                    Column(modifier = Modifier.padding(vertical = 3.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = item.prompt,
+                                color = effectiveTextColor,
+                                fontSize = termSettings.fontSize.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Monospace
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = item.command,
+                                color = TextPrimary,
+                                fontSize = termSettings.fontSize.sp,
+                                fontFamily = FontFamily.Monospace
+                            )
+                        }
+
+                        item.output?.let { out ->
+                            Text(
+                                text = out,
+                                color = effectiveTextColor.copy(alpha = 0.9f),
+                                fontSize = (termSettings.fontSize - 1).sp,
+                                fontFamily = FontFamily.Monospace,
+                                modifier = Modifier.padding(start = 8.dp, top = 2.dp)
+                            )
+                        }
+
+                        item.error?.let { err ->
+                            Text(
+                                text = err,
+                                color = NeonRed,
+                                fontSize = (termSettings.fontSize - 1).sp,
+                                fontFamily = FontFamily.Monospace,
+                                modifier = Modifier.padding(start = 8.dp, top = 2.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // Autocomplete Suggestion Chips
+        if (suggestions.isNotEmpty()) {
+            LazyRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 2.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                items(suggestions) { sugg ->
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(effectiveTextColor.copy(alpha = 0.15f))
+                            .border(0.5.dp, effectiveTextColor.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                            .clickable {
+                                handleTabAutocomplete()
+                            }
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = sugg,
+                            color = effectiveTextColor,
+                            fontSize = 11.sp,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
+                }
+            }
+        }
+
+        // Quick Command Toolbar & Navigation Buttons
+        val quickCommands = listOf("help", "ls -la", "pwd", "tree", "history", "whoami", "clear")
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            LazyRow(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                items(quickCommands) { cmd ->
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(AbyssSurfaceVariant)
+                            .border(0.5.dp, effectiveTextColor.copy(alpha = 0.3f), RoundedCornerShape(4.dp))
+                            .clickable { submitCommand(cmd) }
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = cmd,
+                            color = effectiveTextColor,
+                            fontSize = 11.sp,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
+                }
+            }
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = { handleTabAutocomplete() }, modifier = Modifier.size(26.dp)) {
+                    Icon(imageVector = Icons.Default.KeyboardTab, contentDescription = "Tab", tint = effectiveTextColor)
+                }
+                IconButton(onClick = { navigateHistoryUp() }, modifier = Modifier.size(26.dp)) {
+                    Icon(imageVector = Icons.Default.ArrowDropUp, contentDescription = "Up", tint = effectiveTextColor)
+                }
+                IconButton(onClick = { navigateHistoryDown() }, modifier = Modifier.size(26.dp)) {
+                    Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Down", tint = effectiveTextColor)
                 }
             }
         }
 
         // Active Prompt & Input Field
+        val focusRequester = remember { FocusRequester() }
+        LaunchedEffect(Unit) {
+            focusRequester.requestFocus()
+        }
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(AbyssSurfaceVariant)
+                .border(0.5.dp, effectiveTextColor.copy(alpha = 0.4f), RoundedCornerShape(4.dp))
+                .clickable { focusRequester.requestFocus() }
                 .padding(horizontal = 8.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = promptText,
-                color = accentColor,
-                fontSize = 13.sp,
+                color = effectiveTextColor,
+                fontSize = termSettings.fontSize.sp,
                 fontWeight = FontWeight.Bold,
                 fontFamily = FontFamily.Monospace
             )
 
-            Spacer(modifier = Modifier.width(4.dp))
+            Spacer(modifier = Modifier.width(6.dp))
 
             BasicTextField(
                 value = inputCommand,
                 onValueChange = { inputCommand = it },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .focusRequester(focusRequester),
                 textStyle = TextStyle(
                     color = TextPrimary,
-                    fontSize = 13.sp,
+                    fontSize = termSettings.fontSize.sp,
                     fontFamily = FontFamily.Monospace
                 ),
-                cursorBrush = SolidColor(accentColor),
+                cursorBrush = SolidColor(effectiveTextColor),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { submitCommand(inputCommand) }),
                 singleLine = true,
                 decorationBox = { innerTextField ->
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (inputCommand.isEmpty()) {
-                            Text(
-                                text = "enter command...",
-                                color = TextMuted,
-                                fontSize = 12.sp,
-                                fontFamily = FontFamily.Monospace
-                            )
-                        } else {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Box(
+                            modifier = Modifier.weight(1f),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            if (inputCommand.isEmpty()) {
+                                Text(
+                                    text = "enter command...",
+                                    color = TextMuted,
+                                    fontSize = (termSettings.fontSize - 1).sp,
+                                    fontFamily = FontFamily.Monospace
+                                )
+                            }
                             innerTextField()
                         }
+                        Spacer(modifier = Modifier.width(2.dp))
                         Box(
                             modifier = Modifier
                                 .width(8.dp)
                                 .height(14.dp)
                                 .alpha(cursorAlpha)
-                                .background(accentColor)
+                                .background(effectiveTextColor)
                         )
                     }
                 }
             )
+
+            Spacer(modifier = Modifier.width(4.dp))
+
+            IconButton(
+                onClick = { submitCommand(inputCommand) },
+                modifier = Modifier.size(28.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Send,
+                    contentDescription = "Run",
+                    tint = effectiveTextColor,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
         }
     }
 }

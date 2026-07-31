@@ -10,6 +10,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
+import com.example.backdoor.terminal.TerminalSettings
+import com.example.backdoor.terminal.PromptStyle
+
 enum class OsTheme(val displayName: String, val primaryColor: Color) {
     TECH_PURPLE("Tech Purple", TechPurple),
     MATRIX_GREEN("Matrix Green", TerminalGreen),
@@ -25,7 +28,8 @@ data class OsSettings(
     val bootAnimationSpeedMs: Long = 350L,
     val fontScale: Float = 1.0f,
     val userHandle: String = "operator",
-    val hostname: String = "abyss-node-01"
+    val hostname: String = "abyss-node-01",
+    val terminalSettings: TerminalSettings = TerminalSettings()
 )
 
 class SettingsRepository {
@@ -52,5 +56,9 @@ class SettingsRepository {
         if (handle.isNotBlank()) {
             _settings.value = _settings.value.copy(userHandle = handle.lowercase().trim())
         }
+    }
+
+    fun updateTerminalSettings(terminalSettings: TerminalSettings) {
+        _settings.value = _settings.value.copy(terminalSettings = terminalSettings)
     }
 }

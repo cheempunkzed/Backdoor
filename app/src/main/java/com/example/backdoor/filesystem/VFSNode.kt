@@ -77,3 +77,11 @@ sealed class VFSNode {
         )
     }
 }
+
+val VFSNode.isDirectory: Boolean get() = this is VFSNode.Directory
+val VFSNode.size: Long get() = metadata.sizeBytes
+val VFSNode.modifiedTime: Long get() = metadata.modifiedTimestamp
+val VFSNode.owner: String get() = metadata.owner
+val VFSNode.isProtected: Boolean get() = metadata.isSystemProtected
+val VFSNode.isExecutable: Boolean get() = (this is VFSNode.File && this.isExecutable) || metadata.permissions.contains("x")
+

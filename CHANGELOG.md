@@ -1,5 +1,20 @@
 # AbyssOS Changelog
 
+## [0.4.0] - 2026-07-30
+### Stage 5: Terminal Core + Command Engine & Extensibility
+#### Added
+- **Command Registry & Command Pattern**: Extensible command registry (`CommandRegistry`) supporting dynamic registration, search, autocomplete, and man page inspection without massive switch/when logic.
+- **Advanced Command Parser**: Shell parser (`CommandParser`) supporting single-char flags (`-la`), long options (`--opt=val`), positional arguments, double-quote escaping, and pipelines (`|`, `&&`, `||`).
+- **Terminal Session & Custom Prompts**: Environment variables (`PATH`, `HOME`, `USER`, `HOSTNAME`, `PWD`, `SHELL`), aliases, and custom prompt styles (`DEFAULT`, `SHORT`, `MINIMAL`, `CYBER`).
+- **Comprehensive Terminal Commands**:
+  - Filesystem: `ls`, `cd`, `pwd`, `cat`, `touch`, `mkdir`, `rm`, `mv`, `cp`, `find`, `tree`, `rename`, `chmod`, `stat`.
+  - Utility & System: `help`, `man`, `clear`, `echo`, `history`, `whoami`, `hostname`, `date`, `time`, `version`, `exit`, `open`.
+- **System Logging**: Automatic logging of command execution and terminal events into `/logs/terminal.log`.
+- **Terminal UI Polish**: Built-in settings modal (cursor blink toggle, font size slider, prompt style selector), quick command toolbar, autocomplete suggestion chips, and selection/copy support.
+- **Centralized Localization Engine**: `StringManager` supporting multi-language system strings (English & Russian).
+- **Future Extensibility Architecture**: Decoupled interface contracts for `JobManager`, `PackageManager`, `NetworkService`, `ScriptInterpreter`, and `CronScheduler`.
+- **Save State Compatibility**: Persists terminal command history and custom terminal settings safely across sessions.
+
 ## [0.3.0] - 2026-07-30
 ### Stage 4: Desktop Environment 2.0 + Process Manager
 #### Added

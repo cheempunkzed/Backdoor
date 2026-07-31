@@ -110,27 +110,11 @@ fun TopStatusBar(
                 }
             }
 
-            // Right: Metrics - CPU, RAM, Network, Battery, Clock, Date
+            // Right: Network & Clock (Time only)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // CPU Metric
-                Text(
-                    text = "CPU ${systemStatus.cpuUsagePercent}%",
-                    color = TextMuted,
-                    fontSize = 10.sp,
-                    fontFamily = FontFamily.Monospace
-                )
-
-                // RAM Metric
-                Text(
-                    text = "RAM ${systemStatus.ramUsagePercent}%",
-                    color = TextMuted,
-                    fontSize = 10.sp,
-                    fontFamily = FontFamily.Monospace
-                )
-
                 // Network Signal
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
@@ -148,26 +132,9 @@ fun TopStatusBar(
                     )
                 }
 
-                // Battery Gauge
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "${systemStatus.batteryPercent}%",
-                        color = TextPrimary,
-                        fontSize = 10.sp,
-                        fontFamily = FontFamily.Monospace
-                    )
-                    Spacer(modifier = Modifier.width(2.dp))
-                    Icon(
-                        imageVector = if (systemStatus.isCharging) Icons.Default.BatteryChargingFull else Icons.Default.BatteryStd,
-                        contentDescription = "Battery",
-                        tint = if (systemStatus.batteryPercent < 20) MaterialTheme.colorScheme.error else TextPrimary,
-                        modifier = Modifier.size(12.dp)
-                    )
-                }
-
-                // Clock & Date
+                // Clock (Time only)
                 Text(
-                    text = "$timeString  |  $dateString",
+                    text = timeString,
                     color = TextPrimary,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.SemiBold,

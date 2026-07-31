@@ -16,6 +16,7 @@ import com.example.backdoor.settings.SettingsRepository
 import com.example.backdoor.terminal.CommandContext
 import com.example.backdoor.terminal.CommandExecutor
 import com.example.backdoor.terminal.CommandRegistry
+import com.example.backdoor.terminal.TerminalSession
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -98,8 +99,16 @@ class AbyssOSManager(
     private var notificationJob: Job? = null
     private var tickerJob: Job? = null
 
+    val terminalSession: TerminalSession by lazy {
+        TerminalSession(
+            initialUser = settingsRepository.settings.value.userHandle,
+            initialHostname = settingsRepository.settings.value.hostname,
+            vfs = vfs
+        )
+    }
+
     init {
-        addSystemLog("KERNEL", "AbyssOS 0.3.0 Manager initialized.", LogLevel.INFO)
+        addSystemLog("KERNEL", "AbyssOS 0.4.0 Terminal Core Manager initialized.", LogLevel.INFO)
         startStatusTicker()
 
         scope.launch {
@@ -243,15 +252,15 @@ class AbyssOSManager(
         scope.launch {
             val lines = listOf(
                 "AbyssOS Boot Sequence",
-                "Version 0.3.0",
+                "Version 0.4.0 (Codename: TERMINAL CORE)",
                 "",
-                "Initializing Kernel...",
-                "Loading Virtual Memory...",
+                "Initializing Terminal Core Kernel...",
+                "Loading Command Registry & Parsers...",
                 "Mounting AbyssFS Virtual File System...",
-                "Starting Network Stack...",
-                "Loading Security Modules...",
-                "Initializing Terminal & Commands...",
-                "Verifying File System Integrity...",
+                "Starting System Logging Stack...",
+                "Loading Terminal Session Variables...",
+                "Initializing Shell Engine...",
+                "Verifying Core Integrity...",
                 "Launching Desktop Environment...",
                 "",
                 "Boot completed successfully."
@@ -392,9 +401,12 @@ class AbyssOSManager(
             vfs = vfs,
             systemStatus = currentStatus,
             commandRegistry = commandRegistry,
+            session = terminalSession,
             onExitRequested = { closeActiveApp() },
             onOpenAppRequested = { appName ->
-                val targetApp = OsApp.entries.find { it.appName.equals(appName, ignoreCase = true) }
+                val targetApp = OsApp.entries.find { 
+                    it.appName.equals(appName, ignoreCase = true) || it.name.equals(appName, ignoreCase = true)
+                }
                 if (targetApp != null) {
                     openApp(targetApp)
                 }
