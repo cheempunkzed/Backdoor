@@ -24,6 +24,9 @@ interface SaveManager {
 
     suspend fun getDesktopPositionsJson(): String?
     suspend fun saveDesktopPositionsJson(json: String): Boolean
+
+    suspend fun getNetworkTopologyJson(): String?
+    suspend fun saveNetworkTopologyJson(json: String): Boolean
 }
 
 class MemorySaveManager(
@@ -35,6 +38,7 @@ class MemorySaveManager(
     private var storedVfsJson: String? = null
     private var storedDockJson: String? = null
     private var storedDesktopJson: String? = null
+    private var storedNetworkJson: String? = null
 
     private val _currentSave = MutableStateFlow<SaveSlotEntity?>(
         SaveSlotEntity(
@@ -139,6 +143,15 @@ class MemorySaveManager(
 
     override suspend fun saveDesktopPositionsJson(json: String): Boolean {
         storedDesktopJson = json
+        return true
+    }
+
+    override suspend fun getNetworkTopologyJson(): String? {
+        return storedNetworkJson
+    }
+
+    override suspend fun saveNetworkTopologyJson(json: String): Boolean {
+        storedNetworkJson = json
         return true
     }
 }

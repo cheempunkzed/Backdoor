@@ -9,6 +9,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -117,11 +118,11 @@ fun TerminalApp(
 
     val listState = rememberLazyListState()
 
-    // Blinking cursor
+    // Blinking cursor animation
     val infiniteTransition = rememberInfiniteTransition(label = "cursor")
     val cursorAlpha by infiniteTransition.animateFloat(
         initialValue = 1f,
-        targetValue = if (termSettings.cursorBlink) 0f else 1f,
+        targetValue = 0f,
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = 500),
             repeatMode = RepeatMode.Reverse
@@ -138,6 +139,12 @@ fun TerminalApp(
         } else {
             emptyList()
         }
+    }
+
+    val focusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
     }
 
     val submitCommand = { cmdToRun: String ->
@@ -173,7 +180,7 @@ fun TerminalApp(
 
                 inputCommand = ""
                 historyIndex = -1
-                listState.animateScrollToItem((history.size - 1).coerceAtLeast(0))
+                listState.animateScrollToItem((history.size).coerceAtLeast(0))
             }
         }
     }
@@ -330,7 +337,7 @@ fun TerminalApp(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        // Output Stream with Copy / Selection Container
+        // Output Stream & Active Input Prompt
         SelectionContainer(
             modifier = Modifier
                 .fillMaxWidth()
@@ -338,8 +345,16 @@ fun TerminalApp(
         ) {
             LazyColumn(
                 state = listState,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) {
+                        focusRequester.requestFocus()
+                    }
             ) {
+                // History Items
                 items(history) { item ->
                     Column(modifier = Modifier.padding(vertical = 3.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -378,6 +393,58 @@ fun TerminalApp(
                                 modifier = Modifier.padding(start = 8.dp, top = 2.dp)
                             )
                         }
+                    }
+                }
+
+                // Active Input Prompt Line
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = promptText,
+                            color = effectiveTextColor,
+                            fontSize = termSettings.fontSize.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace
+                        )
+
+                        Spacer(modifier = Modifier.width(6.dp))
+
+                        BasicTextField(
+                            value = inputCommand,
+                            onValueChange = { inputCommand = it },
+                            modifier = Modifier
+                                .weight(1f)
+                                .focusRequester(focusRequester),
+                            textStyle = TextStyle(
+                                color = TextPrimary,
+                                fontSize = termSettings.fontSize.sp,
+                                fontFamily = FontFamily.Monospace
+                            ),
+                            cursorBrush = SolidColor(Color.Transparent),
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                            keyboardActions = KeyboardActions(onDone = { submitCommand(inputCommand) }),
+                            singleLine = true,
+                            decorationBox = { innerTextField ->
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    innerTextField()
+                                    Spacer(modifier = Modifier.width(2.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .width(8.dp)
+                                            .height((termSettings.fontSize + 2).dp)
+                                            .alpha(if (termSettings.cursorBlink) cursorAlpha else 1f)
+                                            .background(effectiveTextColor)
+                                    )
+                                }
+                            }
+                        )
                     }
                 }
             }
@@ -457,92 +524,17 @@ fun TerminalApp(
                 IconButton(onClick = { navigateHistoryDown() }, modifier = Modifier.size(26.dp)) {
                     Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Down", tint = effectiveTextColor)
                 }
-            }
-        }
-
-        // Active Prompt & Input Field
-        val focusRequester = remember { FocusRequester() }
-        LaunchedEffect(Unit) {
-            focusRequester.requestFocus()
-        }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(AbyssSurfaceVariant)
-                .border(0.5.dp, effectiveTextColor.copy(alpha = 0.4f), RoundedCornerShape(4.dp))
-                .clickable { focusRequester.requestFocus() }
-                .padding(horizontal = 8.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = promptText,
-                color = effectiveTextColor,
-                fontSize = termSettings.fontSize.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = FontFamily.Monospace
-            )
-
-            Spacer(modifier = Modifier.width(6.dp))
-
-            BasicTextField(
-                value = inputCommand,
-                onValueChange = { inputCommand = it },
-                modifier = Modifier
-                    .weight(1f)
-                    .focusRequester(focusRequester),
-                textStyle = TextStyle(
-                    color = TextPrimary,
-                    fontSize = termSettings.fontSize.sp,
-                    fontFamily = FontFamily.Monospace
-                ),
-                cursorBrush = SolidColor(effectiveTextColor),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { submitCommand(inputCommand) }),
-                singleLine = true,
-                decorationBox = { innerTextField ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Box(
-                            modifier = Modifier.weight(1f),
-                            contentAlignment = Alignment.CenterStart
-                        ) {
-                            if (inputCommand.isEmpty()) {
-                                Text(
-                                    text = "enter command...",
-                                    color = TextMuted,
-                                    fontSize = (termSettings.fontSize - 1).sp,
-                                    fontFamily = FontFamily.Monospace
-                                )
-                            }
-                            innerTextField()
-                        }
-                        Spacer(modifier = Modifier.width(2.dp))
-                        Box(
-                            modifier = Modifier
-                                .width(8.dp)
-                                .height(14.dp)
-                                .alpha(cursorAlpha)
-                                .background(effectiveTextColor)
-                        )
-                    }
+                IconButton(
+                    onClick = { submitCommand(inputCommand) },
+                    modifier = Modifier.size(26.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Send,
+                        contentDescription = "Run",
+                        tint = effectiveTextColor,
+                        modifier = Modifier.size(16.dp)
+                    )
                 }
-            )
-
-            Spacer(modifier = Modifier.width(4.dp))
-
-            IconButton(
-                onClick = { submitCommand(inputCommand) },
-                modifier = Modifier.size(28.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Send,
-                    contentDescription = "Run",
-                    tint = effectiveTextColor,
-                    modifier = Modifier.size(16.dp)
-                )
             }
         }
     }

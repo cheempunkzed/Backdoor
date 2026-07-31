@@ -65,6 +65,7 @@ class AbyssOSManager(
 
     val commandRegistry = CommandRegistry()
     val commandExecutor = CommandExecutor(commandRegistry)
+    val networkEngine = com.example.backdoor.network.engine.AbyssNetworkEngine()
 
     private val _osState = MutableStateFlow(OsState.BOOTING)
     val osState: StateFlow<OsState> = _osState.asStateFlow()
@@ -108,7 +109,7 @@ class AbyssOSManager(
     }
 
     init {
-        addSystemLog("KERNEL", "AbyssOS 0.4.0 Terminal Core Manager initialized.", LogLevel.INFO)
+        addSystemLog("KERNEL", "AbyssOS 0.5.0 AbyssNet Subsystem initialized.", LogLevel.INFO)
         startStatusTicker()
 
         scope.launch {
@@ -118,6 +119,11 @@ class AbyssOSManager(
             val vfsJson = saveManager.getVfsDataJson()
             if (!vfsJson.isNullOrEmpty()) {
                 vfs.deserializeFromJson(vfsJson, profile?.username ?: "operator")
+            }
+
+            val networkJson = saveManager.getNetworkTopologyJson()
+            if (!networkJson.isNullOrEmpty()) {
+                networkEngine.repository.deserializeFromJson(networkJson)
             }
 
             // Restore Dock Pinned Apps
@@ -252,15 +258,16 @@ class AbyssOSManager(
         scope.launch {
             val lines = listOf(
                 "AbyssOS Boot Sequence",
-                "Version 0.4.0 (Codename: TERMINAL CORE)",
+                "Version 0.5.0 (Codename: ABYSSNET)",
                 "",
-                "Initializing Terminal Core Kernel...",
-                "Loading Command Registry & Parsers...",
-                "Mounting AbyssFS Virtual File System...",
-                "Starting System Logging Stack...",
-                "Loading Terminal Session Variables...",
+                "Initializing AbyssNet Kernel Subsystem...",
+                "Mounting Virtual File System (AbyssFS)...",
+                "Configuring Domain Name Resolver (DNS)...",
+                "Starting Virtual Routing Engine & Latency Simulator...",
+                "Probing Network Interfaces (eth0, wlan0)...",
+                "Loading Command Registry & Network Tools...",
                 "Initializing Shell Engine...",
-                "Verifying Core Integrity...",
+                "Verifying Network Topology Integrity...",
                 "Launching Desktop Environment...",
                 "",
                 "Boot completed successfully."
@@ -402,6 +409,7 @@ class AbyssOSManager(
             systemStatus = currentStatus,
             commandRegistry = commandRegistry,
             session = terminalSession,
+            networkEngine = networkEngine,
             onExitRequested = { closeActiveApp() },
             onOpenAppRequested = { appName ->
                 val targetApp = OsApp.entries.find { 

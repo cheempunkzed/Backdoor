@@ -46,6 +46,15 @@ enum class StringKey {
     RENAME_DESC,
     CHMOD_DESC,
     STAT_DESC,
+    PING_DESC,
+    TRACEROUTE_DESC,
+    NETSTAT_DESC,
+    IPCONFIG_DESC,
+    IFCONFIG_DESC,
+    ARP_DESC,
+    NSLOOKUP_DESC,
+    WHOIS_DESC,
+    ROUTE_DESC,
 
     // UI Labels
     TERMINAL_TITLE,
@@ -53,6 +62,8 @@ enum class StringKey {
     SYSTEM_MONITOR_TITLE,
     FILES_TITLE,
     LOGS_TITLE,
+    NETWORK_TITLE,
+    BROWSER_TITLE,
     DESKTOP_TITLE,
     ENTER_COMMAND_PLACEHOLDER,
     QUICK_ACTIONS,
@@ -106,20 +117,31 @@ object StringManager {
         StringKey.RENAME_DESC to "Renames a file or directory in Virtual File System",
         StringKey.CHMOD_DESC to "Modifies node permission modes (e.g. 755 or +x)",
         StringKey.STAT_DESC to "Displays detailed file metadata status",
+        StringKey.PING_DESC to "Sends ICMP ECHO_REQUEST to virtual network hosts",
+        StringKey.TRACEROUTE_DESC to "Traces route packet path to network node",
+        StringKey.NETSTAT_DESC to "Prints active network socket connections",
+        StringKey.IPCONFIG_DESC to "Displays network interface configuration",
+        StringKey.IFCONFIG_DESC to "Configures or displays network interfaces",
+        StringKey.ARP_DESC to "Displays ARP address resolution cache table",
+        StringKey.NSLOOKUP_DESC to "Queries domain name servers for host IP",
+        StringKey.WHOIS_DESC to "Retrieves domain ownership and registration info",
+        StringKey.ROUTE_DESC to "Displays or modifies IP routing table",
 
-        StringKey.TERMINAL_TITLE to "Terminal Core 0.4.0",
+        StringKey.TERMINAL_TITLE to "Terminal Core 0.5.0",
         StringKey.SETTINGS_TITLE to "System Settings",
         StringKey.SYSTEM_MONITOR_TITLE to "System Monitor",
         StringKey.FILES_TITLE to "File Manager",
         StringKey.LOGS_TITLE to "System Logs",
+        StringKey.NETWORK_TITLE to "Network Manager",
+        StringKey.BROWSER_TITLE to "Abyss Browser",
         StringKey.DESKTOP_TITLE to "AbyssOS Desktop",
         StringKey.ENTER_COMMAND_PLACEHOLDER to "enter command...",
         StringKey.QUICK_ACTIONS to "Quick Actions",
         StringKey.CLEAR_SCREEN to "Clear",
         StringKey.AUTOCMP_SUGGESTIONS to "Suggestions",
 
-        StringKey.BOOT_SUCCESS to "AbyssOS Terminal Core Engine loaded.",
-        StringKey.KERNEL_INITIALIZED to "[KERNEL] AbyssOS v0.4.0 Core Active."
+        StringKey.BOOT_SUCCESS to "AbyssOS AbyssNet Subsystem loaded.",
+        StringKey.KERNEL_INITIALIZED to "[KERNEL] AbyssOS v0.5.0 ABYSSNET Active."
     )
 
     private val ruStrings = mapOf(
@@ -161,20 +183,31 @@ object StringManager {
         StringKey.RENAME_DESC to "Переименовывает файл или каталог",
         StringKey.CHMOD_DESC to "Изменяет права доступа",
         StringKey.STAT_DESC to "Отображает метаданные файла",
+        StringKey.PING_DESC to "Отправляет ICMP ECHO-запросы узлам виртуальной сети",
+        StringKey.TRACEROUTE_DESC to "Трассирует маршрут пакетов к узлу сети",
+        StringKey.NETSTAT_DESC to "Выводит активные сетевые подключения",
+        StringKey.IPCONFIG_DESC to "Отображает конфигурацию сетевых интерфейсов",
+        StringKey.IFCONFIG_DESC to "Настраивает или отображает сетевые интерфейсы",
+        StringKey.ARP_DESC to "Выводит таблицу ARP-кэша адресов",
+        StringKey.NSLOOKUP_DESC to "Запрашивает DNS-серверы для поиска IP",
+        StringKey.WHOIS_DESC to "Получает информацию о владельце домена",
+        StringKey.ROUTE_DESC to "Отображает таблицу маршрутизации IP",
 
-        StringKey.TERMINAL_TITLE to "Ядро Терминала 0.4.0",
+        StringKey.TERMINAL_TITLE to "Терминал 0.5.0",
         StringKey.SETTINGS_TITLE to "Настройки системы",
         StringKey.SYSTEM_MONITOR_TITLE to "Монитор ресурсов",
         StringKey.FILES_TITLE to "Файловый менеджер",
         StringKey.LOGS_TITLE to "Системные логи",
+        StringKey.NETWORK_TITLE to "Сетевой менеджер",
+        StringKey.BROWSER_TITLE to "Браузер Abyss",
         StringKey.DESKTOP_TITLE to "Рабочий стол AbyssOS",
         StringKey.ENTER_COMMAND_PLACEHOLDER to "введите команду...",
         StringKey.QUICK_ACTIONS to "Быстрые действия",
         StringKey.CLEAR_SCREEN to "Очистить",
         StringKey.AUTOCMP_SUGGESTIONS to "Подсказки",
 
-        StringKey.BOOT_SUCCESS to "Загружено ядро терминала AbyssOS.",
-        StringKey.KERNEL_INITIALIZED to "[ЯДРО] AbyssOS v0.4.0 Активно."
+        StringKey.BOOT_SUCCESS to "Загружена сетевая подсистема AbyssNet.",
+        StringKey.KERNEL_INITIALIZED to "[ЯДРО] AbyssOS v0.5.0 ABYSSNET Активно."
     )
 
     fun get(key: StringKey, vararg args: Any): String {

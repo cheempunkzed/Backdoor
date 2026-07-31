@@ -15,7 +15,8 @@ data class ManPage(
 enum class CommandCategory(val title: String) {
     FILESYSTEM("FILESYSTEM COMMANDS"),
     SYSTEM("SYSTEM COMMANDS"),
-    UTILITY("UTILITY COMMANDS")
+    UTILITY("UTILITY COMMANDS"),
+    NETWORK("NETWORK COMMANDS")
 }
 
 data class CommandContext(
@@ -23,6 +24,7 @@ data class CommandContext(
     val systemStatus: SystemStatus,
     val commandRegistry: CommandRegistry,
     val session: TerminalSession,
+    val networkEngine: com.example.backdoor.network.engine.AbyssNetworkEngine? = null,
     val onExitRequested: () -> Unit = {},
     val onOpenAppRequested: (String) -> Unit = {}
 )

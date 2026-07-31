@@ -3,6 +3,7 @@ package com.example.backdoor.terminal
 import com.example.backdoor.filesystem.*
 import com.example.backdoor.i18n.StringKey
 import com.example.backdoor.i18n.StringManager
+import com.example.backdoor.terminal.commands.ArpCommand
 import com.example.backdoor.terminal.commands.CatCommand
 import com.example.backdoor.terminal.commands.CdCommand
 import com.example.backdoor.terminal.commands.ChmodCommand
@@ -15,20 +16,27 @@ import com.example.backdoor.terminal.commands.FindCommand
 import com.example.backdoor.terminal.commands.HelpCommand
 import com.example.backdoor.terminal.commands.HistoryCommand
 import com.example.backdoor.terminal.commands.HostnameCommand
+import com.example.backdoor.terminal.commands.IpconfigCommand
 import com.example.backdoor.terminal.commands.LsCommand
 import com.example.backdoor.terminal.commands.ManCommand
 import com.example.backdoor.terminal.commands.MkdirCommand
 import com.example.backdoor.terminal.commands.MvCommand
+import com.example.backdoor.terminal.commands.NetstatCommand
+import com.example.backdoor.terminal.commands.NslookupCommand
 import com.example.backdoor.terminal.commands.OpenCommand
+import com.example.backdoor.terminal.commands.PingCommand
 import com.example.backdoor.terminal.commands.PwdCommand
 import com.example.backdoor.terminal.commands.RenameCommand
 import com.example.backdoor.terminal.commands.RmCommand
+import com.example.backdoor.terminal.commands.RouteCommand
 import com.example.backdoor.terminal.commands.StatCommand
 import com.example.backdoor.terminal.commands.TimeCommand
 import com.example.backdoor.terminal.commands.TouchCommand
+import com.example.backdoor.terminal.commands.TracerouteCommand
 import com.example.backdoor.terminal.commands.TreeCommand
 import com.example.backdoor.terminal.commands.VersionCommand
 import com.example.backdoor.terminal.commands.WhoAmICommand
+import com.example.backdoor.terminal.commands.WhoisCommand
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
@@ -66,6 +74,17 @@ class CommandRegistry {
         registerCommand(RenameCommand())
         registerCommand(ChmodCommand())
         registerCommand(StatCommand())
+
+        // Network Commands (AbyssNet)
+        registerCommand(PingCommand())
+        registerCommand(TracerouteCommand())
+        registerCommand(NetstatCommand())
+        registerCommand(IpconfigCommand("ipconfig"))
+        registerCommand(IpconfigCommand("ifconfig"))
+        registerCommand(ArpCommand())
+        registerCommand(NslookupCommand())
+        registerCommand(WhoisCommand())
+        registerCommand(RouteCommand())
     }
 
     fun registerCommand(command: Command) {
