@@ -25,6 +25,7 @@ data class CommandContext(
     val commandRegistry: CommandRegistry,
     val session: TerminalSession,
     val networkEngine: com.example.backdoor.network.engine.AbyssNetworkEngine? = null,
+    val eventBus: com.example.backdoor.core.SystemEventBus? = null,
     val onExitRequested: () -> Unit = {},
     val onOpenAppRequested: (String) -> Unit = {}
 )

@@ -78,6 +78,8 @@ class OnionCommand : Command {
 
             "connect" -> {
                 val target = parsed.positionalArgs.getOrNull(1) ?: "dir.onion"
+                context.eventBus?.emit(com.example.backdoor.core.SystemEvent.OnionRouteEstablished(target))
+                context.eventBus?.emit(com.example.backdoor.core.SystemEvent.AppRequested(com.example.backdoor.game.OsApp.BROWSER))
                 CommandResult(output = "[ONION ROUTER] Multi-hop route built for $target. Launching session in Abyss Browser.")
             }
 

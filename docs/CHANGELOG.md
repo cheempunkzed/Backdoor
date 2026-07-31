@@ -2,6 +2,14 @@
 
 All notable changes to the Backdoor project will be documented in this file.
 
+## [0.8.1] - 2026-07-31
+### Development Milestone 8.1: System Integration
+#### Added
+- **System Event Bus (`SystemEventBus`)**: Centralized event-driven architecture allowing decoupled communication between OS components (NetworkStatusChanged, OnionRouteEstablished, FileDownloaded, AppRequested, NotificationTriggered).
+- **Application State Preservation (`AppState`)**: Abstracted UI states into `AppState` objects attached to `OSProcess` entries. Applications now retain their full state (input fields, tabs, navigation history) even when their windows are minimized, restored, or closed.
+- **Process Manager Expansion**: Integrated `AppState` into `OSProcess`. Implemented seamless mapping between UI windows and background processes without restarting applications upon window focus changes.
+- **Terminal Integration (`SystemEventBus`)**: `onion` command now automatically pushes an `OnionRouteEstablished` event and launches Abyss Browser directly via event bus.
+
 ## [0.8.0] - 2026-07-31
 ### Development Milestone 8: Dark Layer (Onion Network)
 #### Added

@@ -69,6 +69,7 @@ class AbyssOSManager(
     val corporateRepository = com.example.backdoor.corporate.CorporateGridRepository()
     val securityFramework = com.example.backdoor.security.core.OffensiveSecurityFramework(scope, vfs)
     val darknetEngine = com.example.backdoor.darknet.engine.OnionNetworkEngine()
+    val eventBus = com.example.backdoor.core.SystemEventBus()
 
     private val _osState = MutableStateFlow(OsState.BOOTING)
     val osState: StateFlow<OsState> = _osState.asStateFlow()
@@ -182,6 +183,22 @@ class AbyssOSManager(
             vfs.updateEvent.collect {
                 val json = vfs.serializeToJson()
                 saveManager.saveVfsDataJson(json)
+            }
+        }
+        
+        // Listen to SystemEventBus
+        scope.launch {
+            eventBus.events.collect { event ->
+                when (event) {
+                    is com.example.backdoor.core.SystemEvent.AppRequested -> {
+                        openApp(event.targetApp)
+                        // payload would go to the App Instance if it supported it.
+                    }
+                    is com.example.backdoor.core.SystemEvent.NotificationTriggered -> {
+                        showNotification(event.title, event.message, event.level)
+                    }
+                    else -> {}
+                }
             }
         }
     }
@@ -417,6 +434,7 @@ class AbyssOSManager(
             commandRegistry = commandRegistry,
             session = terminalSession,
             networkEngine = networkEngine,
+            eventBus = eventBus,
             onExitRequested = { closeActiveApp() },
             onOpenAppRequested = { appName ->
                 val targetApp = OsApp.entries.find { 

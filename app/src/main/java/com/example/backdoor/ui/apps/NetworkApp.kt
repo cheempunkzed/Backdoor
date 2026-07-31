@@ -94,7 +94,16 @@ fun NetworkApp(
     val nodes by osManager.networkEngine.nodes.collectAsState()
     val orgs by osManager.corporateRepository.organizations.collectAsState()
 
-    var activeTab by remember { mutableIntStateOf(0) } // 0: Local Map, 1: Corporate Grid, 2: Organizations, 3: Interfaces
+    val process = osManager.processManager.getProcessForApp(com.example.backdoor.game.OsApp.NETWORK)
+    val appState = process?.appState as? com.example.backdoor.core.NetworkAppState
+
+    var activeTabStr by remember { appState?.selectedTab ?: mutableStateOf("0") }
+    var activeTab by remember { mutableIntStateOf(activeTabStr.toIntOrNull() ?: 0) }
+
+    // Sync back changes
+    androidx.compose.runtime.LaunchedEffect(activeTab) {
+        appState?.selectedTab?.value = activeTab.toString()
+    }
 
     Column(
         modifier = modifier

@@ -104,7 +104,10 @@ fun FilesApp(
 
     val vfsVersionEvent by vfs.updateEvent.collectAsState()
 
-    var currentPath by remember { mutableStateOf("/home/$activeUser") }
+    val process = osManager.processManager.getProcessForApp(com.example.backdoor.game.OsApp.FILES)
+    val appState = process?.appState as? com.example.backdoor.core.FilesAppState
+
+    var currentPath by remember { appState?.currentPath ?: mutableStateOf("/home/$activeUser") }
     var searchQuery by remember { mutableStateOf("") }
     var selectedNode by remember { mutableStateOf<VFSNode?>(null) }
     var showTrashView by remember { mutableStateOf(false) }

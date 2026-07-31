@@ -1,5 +1,11 @@
 # Version History
 
+## v0.8.1 - SYSTEM INTEGRATION (2026-07-31)
+- Abstracted Application State into `AppState` objects tightly coupled to `OSProcess` allowing seamless backgrounding and restoring of windows.
+- Implemented `SystemEventBus` providing decoupled inter-process communication for apps, shell, and OS core.
+- Refactored `WindowManager` and `AbyssOSManager` to rely on Application Process state rather than transient window state.
+- Enhanced `TerminalApp` and `BrowserApp` to cross-communicate via system events.
+
 ## v0.8.0 - ONION NETWORK (2026-07-31)
 - Implemented multi-hop encrypted Onion Network circuit engine (`OnionNetworkEngine`) with relay nodes and exit routers.
 - Introduced 8 indexed `.onion` hidden services (`dir.onion`, `abyss-forum.onion`, `blackvault.onion`, `darkmarket.onion`, etc.).

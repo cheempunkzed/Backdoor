@@ -94,19 +94,36 @@ fun TerminalApp(
     val settingsState by osManager.settingsRepository.settings.collectAsState()
     val termSettings = settingsState.terminalSettings
 
-    var inputCommand by remember { mutableStateOf("") }
-    var historyIndex by remember { mutableIntStateOf(-1) }
+    val process = osManager.processManager.getProcessForApp(com.example.backdoor.game.OsApp.TERMINAL)
+    val appState = process?.appState as? com.example.backdoor.core.TerminalAppState
+
+    var inputCommand by remember { appState?.inputCommand ?: mutableStateOf("") }
+    var historyIndex by remember { appState?.historyIndex ?: mutableStateOf(-1) }
     var showSettingsModal by remember { mutableStateOf(false) }
 
     val history = remember {
-        mutableStateListOf(
-            TerminalHistoryItem(
-                prompt = osManager.terminalSession.formatPrompt(termSettings.promptStyle),
-                command = "version",
-                output = "AbyssOS 0.4.0 Terminal Core initialized. Type 'help' for command list.",
-                error = null
+        if (appState != null) {
+            if (appState.history.isEmpty()) {
+                appState.history.add(
+                    TerminalHistoryItem(
+                        prompt = osManager.terminalSession.formatPrompt(termSettings.promptStyle),
+                        command = "version",
+                        output = "AbyssOS 0.4.0 Terminal Core initialized. Type 'help' for command list.",
+                        error = null
+                    )
+                )
+            }
+            appState.history as androidx.compose.runtime.snapshots.SnapshotStateList<TerminalHistoryItem>
+        } else {
+            mutableStateListOf(
+                TerminalHistoryItem(
+                    prompt = osManager.terminalSession.formatPrompt(termSettings.promptStyle),
+                    command = "version",
+                    output = "AbyssOS 0.4.0 Terminal Core initialized. Type 'help' for command list.",
+                    error = null
+                )
             )
-        )
+        }
     }
 
     LaunchedEffect(Unit) {

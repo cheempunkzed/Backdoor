@@ -182,7 +182,7 @@ fun DesktopScreen(
 
                 // Render Multi-Window Stack
                 openWindows.sortedBy { it.zIndex }.forEach { winState ->
-                    if (!winState.isMinimized) {
+                    androidx.compose.runtime.key(winState.windowId) {
                         DraggableWindowWrapper(
                             winState = winState,
                             osManager = osManager,
@@ -290,6 +290,8 @@ private fun DraggableWindowWrapper(
 ) {
     var offsetX by remember { mutableStateOf(0f) }
     var offsetY by remember { mutableStateOf(0f) }
+
+    if (winState.isMinimized) return
 
     Box(
         modifier = Modifier

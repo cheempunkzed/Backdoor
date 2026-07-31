@@ -74,8 +74,21 @@ fun BrowserApp(
     accentColor: Color = CyberCyan,
     modifier: Modifier = Modifier
 ) {
-    var urlInput by remember { mutableStateOf("router.local") }
-    var currentUrl by remember { mutableStateOf("router.local") }
+    val process = osManager.processManager.getProcessForApp(com.example.backdoor.game.OsApp.BROWSER)
+    val appState = process?.appState as? com.example.backdoor.core.BrowserAppState
+
+    var urlInput by remember { appState?.urlInput ?: mutableStateOf("router.local") }
+    var currentUrl by remember { appState?.currentUrl ?: mutableStateOf("router.local") }
+
+    // Also listen to eventBus for OnionRouteEstablished
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        osManager.eventBus.events.collect { event ->
+            if (event is com.example.backdoor.core.SystemEvent.OnionRouteEstablished) {
+                currentUrl = event.targetOnion
+                urlInput = event.targetOnion
+            }
+        }
+    }
 
     val domainResolver = osManager.networkEngine.domainResolver
     val resolvedIp = domainResolver.resolveDomain(currentUrl)
@@ -595,8 +608,11 @@ private fun OnionWebPage(
     val rep by darknet.playerReputation.collectAsState()
     val relays by darknet.relayNodes.collectAsState()
 
-    var selectedThreadId by remember { mutableStateOf(threads.firstOrNull()?.id) }
-    var replyInput by remember { mutableStateOf("") }
+    val process = osManager.processManager.getProcessForApp(com.example.backdoor.game.OsApp.BROWSER)
+    val appState = process?.appState as? com.example.backdoor.core.BrowserAppState
+
+    var selectedThreadId by remember { appState?.selectedThreadId ?: mutableStateOf(threads.firstOrNull()?.id) }
+    var replyInput by remember { appState?.replyInput ?: mutableStateOf("") }
     var newThreadTitle by remember { mutableStateOf("") }
     var newThreadCategory by remember { mutableStateOf("General") }
     var newThreadContent by remember { mutableStateOf("") }

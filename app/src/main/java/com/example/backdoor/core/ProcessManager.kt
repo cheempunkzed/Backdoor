@@ -27,7 +27,8 @@ data class OSProcess(
     val ramUsageMb: Float = 14.5f,
     val startTimeMillis: Long = System.currentTimeMillis(),
     val priority: Int = 20, // Nice value 0-39
-    val isDaemon: Boolean = false
+    val isDaemon: Boolean = false,
+    val appState: Any? = null
 ) {
     val uptimeSeconds: Long
         get() = (System.currentTimeMillis() - startTimeMillis) / 1000L
@@ -77,6 +78,17 @@ class ProcessManager(
             OsApp.SYSTEM_MONITOR -> 1.8f to 18.0f
         }
 
+        val appState: AppState = when (app) {
+            OsApp.TERMINAL -> TerminalAppState()
+            OsApp.BROWSER -> BrowserAppState()
+            OsApp.FILES -> FilesAppState()
+            OsApp.SETTINGS -> SettingsAppState()
+            OsApp.DARKNET -> DarkNetAppState()
+            OsApp.NETWORK -> NetworkAppState()
+            OsApp.LOGS -> LogsAppState()
+            OsApp.SYSTEM_MONITOR -> SystemMonitorAppState()
+        }
+
         val newProc = OSProcess(
             pid = pid,
             name = app.appName,
@@ -85,7 +97,8 @@ class ProcessManager(
             cpuUsagePercent = initialCpu,
             ramUsageMb = initialRam,
             priority = 20,
-            isDaemon = false
+            isDaemon = false,
+            appState = appState
         )
 
         _processes.value = _processes.value + newProc
