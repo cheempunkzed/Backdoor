@@ -27,6 +27,9 @@ interface SaveManager {
 
     suspend fun getNetworkTopologyJson(): String?
     suspend fun saveNetworkTopologyJson(json: String): Boolean
+
+    suspend fun getCorporateGridJson(): String?
+    suspend fun saveCorporateGridJson(json: String): Boolean
 }
 
 class MemorySaveManager(
@@ -39,6 +42,7 @@ class MemorySaveManager(
     private var storedDockJson: String? = null
     private var storedDesktopJson: String? = null
     private var storedNetworkJson: String? = null
+    private var storedCorporateJson: String? = null
 
     private val _currentSave = MutableStateFlow<SaveSlotEntity?>(
         SaveSlotEntity(
@@ -46,7 +50,7 @@ class MemorySaveManager(
             saveName = "AbyssOS Default Profile",
             timestamp = System.currentTimeMillis(),
             playerHandle = "operator",
-            osVersion = "0.3.0"
+            osVersion = "0.6.0"
         )
     )
     override val currentSaveState: Flow<SaveSlotEntity?> = _currentSave.asStateFlow()
@@ -152,6 +156,15 @@ class MemorySaveManager(
 
     override suspend fun saveNetworkTopologyJson(json: String): Boolean {
         storedNetworkJson = json
+        return true
+    }
+
+    override suspend fun getCorporateGridJson(): String? {
+        return storedCorporateJson
+    }
+
+    override suspend fun saveCorporateGridJson(json: String): Boolean {
+        storedCorporateJson = json
         return true
     }
 }

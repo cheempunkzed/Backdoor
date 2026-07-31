@@ -127,7 +127,7 @@ object StringManager {
         StringKey.WHOIS_DESC to "Retrieves domain ownership and registration info",
         StringKey.ROUTE_DESC to "Displays or modifies IP routing table",
 
-        StringKey.TERMINAL_TITLE to "Terminal Core 0.5.0",
+        StringKey.TERMINAL_TITLE to "Terminal Core 0.6.0",
         StringKey.SETTINGS_TITLE to "System Settings",
         StringKey.SYSTEM_MONITOR_TITLE to "System Monitor",
         StringKey.FILES_TITLE to "File Manager",
@@ -140,8 +140,8 @@ object StringManager {
         StringKey.CLEAR_SCREEN to "Clear",
         StringKey.AUTOCMP_SUGGESTIONS to "Suggestions",
 
-        StringKey.BOOT_SUCCESS to "AbyssOS AbyssNet Subsystem loaded.",
-        StringKey.KERNEL_INITIALIZED to "[KERNEL] AbyssOS v0.5.0 ABYSSNET Active."
+        StringKey.BOOT_SUCCESS to "AbyssOS Corporate Grid Subsystem loaded.",
+        StringKey.KERNEL_INITIALIZED to "[KERNEL] AbyssOS v0.6.0 CORPORATE GRID Active."
     )
 
     private val ruStrings = mapOf(
@@ -193,7 +193,7 @@ object StringManager {
         StringKey.WHOIS_DESC to "Получает информацию о владельце домена",
         StringKey.ROUTE_DESC to "Отображает таблицу маршрутизации IP",
 
-        StringKey.TERMINAL_TITLE to "Терминал 0.5.0",
+        StringKey.TERMINAL_TITLE to "Терминал 0.6.0",
         StringKey.SETTINGS_TITLE to "Настройки системы",
         StringKey.SYSTEM_MONITOR_TITLE to "Монитор ресурсов",
         StringKey.FILES_TITLE to "Файловый менеджер",
@@ -206,8 +206,8 @@ object StringManager {
         StringKey.CLEAR_SCREEN to "Очистить",
         StringKey.AUTOCMP_SUGGESTIONS to "Подсказки",
 
-        StringKey.BOOT_SUCCESS to "Загружена сетевая подсистема AbyssNet.",
-        StringKey.KERNEL_INITIALIZED to "[ЯДРО] AbyssOS v0.5.0 ABYSSNET Активно."
+        StringKey.BOOT_SUCCESS to "Загружена корпоративная сеть AbyssNet Corporate Grid.",
+        StringKey.KERNEL_INITIALIZED to "[ЯДРО] AbyssOS v0.6.0 CORPORATE GRID Активно."
     )
 
     fun get(key: StringKey, vararg args: Any): String {

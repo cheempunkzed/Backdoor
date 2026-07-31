@@ -23,10 +23,13 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Domain
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Router
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.Icon
@@ -48,6 +51,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.backdoor.corporate.Organization
 import com.example.backdoor.game.AbyssOSManager
 import com.example.ui.theme.AbyssBackground
 import com.example.ui.theme.AbyssCard
@@ -61,7 +65,7 @@ import com.example.ui.theme.TextPrimary
 
 /**
  * AbyssOS Virtual Web Browser.
- * Resolves local and virtual domain names via AbyssNet DomainResolver.
+ * Resolves local, virtual, and corporate domain names via AbyssNet DomainResolver and Corporate Grid.
  */
 @Composable
 fun BrowserApp(
@@ -75,6 +79,7 @@ fun BrowserApp(
     val domainResolver = osManager.networkEngine.domainResolver
     val resolvedIp = domainResolver.resolveDomain(currentUrl)
     val targetNode = resolvedIp?.let { osManager.networkEngine.repository.getNodeByIp(it) }
+    val corporateOrg = osManager.corporateRepository.getOrganizationByDomain(currentUrl)
 
     Column(
         modifier = modifier
@@ -119,10 +124,11 @@ fun BrowserApp(
                     .padding(horizontal = 10.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                val isSecure = resolvedIp != null || corporateOrg != null
                 Icon(
-                    imageVector = if (resolvedIp != null) Icons.Default.Lock else Icons.Default.Warning,
+                    imageVector = if (isSecure) Icons.Default.Lock else Icons.Default.Warning,
                     contentDescription = "Security",
-                    tint = if (resolvedIp != null) StatusConnected else NeonRed,
+                    tint = if (isSecure) StatusConnected else NeonRed,
                     modifier = Modifier.size(14.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
@@ -180,11 +186,159 @@ fun BrowserApp(
                 currentUrl.equals("about:network", ignoreCase = true) -> {
                     AboutNetworkPage(osManager = osManager, accentColor = accentColor)
                 }
+                corporateOrg != null -> {
+                    CorporateWebPage(org = corporateOrg, accentColor = accentColor)
+                }
                 resolvedIp != null && targetNode != null -> {
                     NodeWebPage(node = targetNode, accentColor = accentColor)
                 }
                 else -> {
                     ErrorWebPage(url = currentUrl)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CorporateWebPage(org: Organization, accentColor: Color) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Corporate Brand Header
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(8.dp))
+                .background(AbyssSurface)
+                .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Business,
+                contentDescription = org.name,
+                tint = accentColor,
+                modifier = Modifier.size(36.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column {
+                Text(
+                    text = org.name.uppercase(),
+                    color = TextPrimary,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace
+                )
+                Text(
+                    text = "${org.industry.displayName} • Code: ${org.code} • Subnet ${org.subnet}",
+                    color = CyberCyan,
+                    fontSize = 11.sp,
+                    fontFamily = FontFamily.Monospace
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // Mission & Infrastructure Overview Card
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(6.dp))
+                .background(AbyssSurface)
+                .padding(12.dp)
+        ) {
+            Column {
+                Text(
+                    text = "CORPORATE MISSION STATEMENT",
+                    color = TextMuted,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = org.description,
+                    color = TextPrimary,
+                    fontSize = 12.sp,
+                    fontFamily = FontFamily.Monospace
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Grid Specs Row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(AbyssSurface)
+                    .padding(10.dp)
+            ) {
+                Column {
+                    Text("SECURITY CLEARANCE", color = TextMuted, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
+                    Text("Tier ${org.securityLevel} Encrypted", color = StatusConnected, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(AbyssSurface)
+                    .padding(10.dp)
+            ) {
+                Column {
+                    Text("ACTIVE DATA CENTERS", color = TextMuted, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
+                    Text("${org.dataCenters.size} Grid Facilities", color = CyberCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(AbyssSurface)
+                    .padding(10.dp)
+            ) {
+                Column {
+                    Text("MANAGED NODES", color = TextMuted, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
+                    Text("${org.servers.size} Active Servers", color = TechPurple, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        Text(
+            text = "PUBLIC CORPORATE SERVER NODES",
+            color = TechPurple,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            fontFamily = FontFamily.Monospace
+        )
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            items(org.servers.take(8)) { server ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(AbyssSurface)
+                        .padding(10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(text = server.domain, color = TextPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                        Text(text = "IP: ${server.ip} • Class: ${server.type.displayName}", color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                    }
+                    Text(text = "ONLINE", color = StatusConnected, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
                 }
             }
         }
@@ -247,7 +401,7 @@ private fun LocalhostWebPage(osManager: AbyssOSManager, accentColor: Color) {
         Spacer(modifier = Modifier.height(16.dp))
         Text(text = "Local System Status: ACTIVE", color = StatusConnected, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
         Text(text = "Virtual File System: MOUNTED (/)", color = TextPrimary, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
-        Text(text = "Kernel Version: 0.5.0 ABYSSNET", color = TextPrimary, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+        Text(text = "Kernel Version: 0.6.0 CORPORATE GRID", color = TextPrimary, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
     }
 }
 

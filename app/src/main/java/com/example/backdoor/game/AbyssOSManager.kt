@@ -66,6 +66,7 @@ class AbyssOSManager(
     val commandRegistry = CommandRegistry()
     val commandExecutor = CommandExecutor(commandRegistry)
     val networkEngine = com.example.backdoor.network.engine.AbyssNetworkEngine()
+    val corporateRepository = com.example.backdoor.corporate.CorporateGridRepository()
 
     private val _osState = MutableStateFlow(OsState.BOOTING)
     val osState: StateFlow<OsState> = _osState.asStateFlow()
@@ -109,7 +110,8 @@ class AbyssOSManager(
     }
 
     init {
-        addSystemLog("KERNEL", "AbyssOS 0.5.0 AbyssNet Subsystem initialized.", LogLevel.INFO)
+        corporateRepository.registerWithNetworkEngine(networkEngine)
+        addSystemLog("KERNEL", "AbyssOS 0.6.0 Corporate Grid Subsystem initialized.", LogLevel.INFO)
         startStatusTicker()
 
         scope.launch {
@@ -258,16 +260,17 @@ class AbyssOSManager(
         scope.launch {
             val lines = listOf(
                 "AbyssOS Boot Sequence",
-                "Version 0.5.0 (Codename: ABYSSNET)",
+                "Version 0.6.0 (Codename: CORPORATE GRID)",
                 "",
-                "Initializing AbyssNet Kernel Subsystem...",
+                "Initializing AbyssNet Kernel & Corporate Grid...",
                 "Mounting Virtual File System (AbyssFS)...",
+                "Populating Corporate Organizations & Server Matrix...",
                 "Configuring Domain Name Resolver (DNS)...",
                 "Starting Virtual Routing Engine & Latency Simulator...",
-                "Probing Network Interfaces (eth0, wlan0)...",
-                "Loading Command Registry & Network Tools...",
+                "Probing Corporate Data Centers & Subnet Racks...",
+                "Loading Command Registry & Security Tools...",
                 "Initializing Shell Engine...",
-                "Verifying Network Topology Integrity...",
+                "Verifying Corporate Infrastructure Integrity...",
                 "Launching Desktop Environment...",
                 "",
                 "Boot completed successfully."

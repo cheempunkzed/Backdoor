@@ -313,10 +313,10 @@ fun SettingsApp(
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(text = "OS Name: AbyssOS", color = accentColor, fontSize = 12.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
-            Text(text = "Version: 0.5.0 (Codename: ABYSSNET)", color = TextPrimary, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
-            Text(text = "Virtual Network Subsystem: AbyssNet Core 5.0 Active", color = accentColor, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+            Text(text = "Version: 0.6.0 (Codename: CORPORATE GRID)", color = TextPrimary, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+            Text(text = "Virtual Network Subsystem: AbyssNet Corporate Grid 6.0 Active", color = accentColor, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
             Text(text = "Filesystem: AbyssFS Virtual File System V2 (Persistent)", color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
-            Text(text = "Kernel Build: #2050-STAGE5-RELEASE", color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+            Text(text = "Kernel Build: #2060-STAGE6-RELEASE", color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
         }
 
         Spacer(modifier = Modifier.height(20.dp))

@@ -1,21 +1,26 @@
-# Backdoor Version History
+# Version History
 
-## [0.5.0] - ABYSSNET (Current)
-- Released Virtual Network Subsystem (AbyssNet).
-- Added network commands: `ping`, `traceroute`, `netstat`, `ipconfig`, `ifconfig`, `arp`, `nslookup`, `whois`, `route`.
-- Implemented Network Map Control Panel app with interactive topology viewer and device inspector.
-- Implemented Virtual Web Browser with domain name resolution (`router.local`, `localhost`, `about:network`).
-- Added persistent network topology JSON serialization in SaveManager.
+## v0.6.0 - CORPORATE GRID (2026-07-31)
+- Populated AbyssNet with 105 corporate organizations, 2500+ servers, and 200+ data center facilities.
+- Expanded Network App with Local Map, Grid Tree, Organizations Directory, and Interfaces monitor.
+- Enabled corporate website browsing in Browser App.
+- Added Network Infrastructure card to System Monitor.
+- Fixed Terminal input cursor positioning bug.
 
-## [0.4.0] - TERMINAL CORE
-- Implemented AbyssFS Virtual File System with file permissions, path resolution, and JSON persistence.
-- Added command execution framework, session state, and built-in POSIX utilities.
+## v0.5.0 - ABYSSNET (2026-07-31)
+- Implemented virtual network engine, address generators, latency simulator, packet router, and DNS resolver.
+- Added network CLI commands (`ping`, `traceroute`, `netstat`, `ipconfig`/`ifconfig`, `arp`, `nslookup`, `whois`, `route`).
+- Integrated Graphical Network App and Virtual Web Browser.
 
-## [0.3.0] - DESKTOP ENVIRONMENT
-- Added Desktop GUI screen with bottom dock taskbar, dynamic status bar, app icon grid, and multi-window manager.
+## v0.4.0 - AbyssFS & Terminal Core (2026-07-31)
+- Virtual File System with POSIX permissions and JSON serialization.
+- Terminal Core with command execution engine and shell history.
 
-## [0.2.0] - ABYSSOS KERNEL
-- Implemented simulated boot loader sequence, process lifecycle state, and system logging framework.
+## v0.3.0 - Desktop Environment (2026-07-31)
+- App launcher, dock taskbar, top status bar, window manager.
 
-## [0.1.0] - FOUNDATION
-- Initial setup with Jetpack Compose theme, Material 3 dynamic color scheme, and initial settings repository.
+## v0.2.0 - AbyssOS (2026-07-31)
+- Boot sequence animation, user authentication, session manager.
+
+## v0.1.0 - Foundation (2026-07-31)
+- Base Android Jetpack Compose project structure, dark cyberpunk theme.

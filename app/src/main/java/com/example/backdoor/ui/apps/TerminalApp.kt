@@ -425,24 +425,14 @@ fun TerminalApp(
                                 fontSize = termSettings.fontSize.sp,
                                 fontFamily = FontFamily.Monospace
                             ),
-                            cursorBrush = SolidColor(Color.Transparent),
+                            cursorBrush = SolidColor(
+                                if (termSettings.cursorBlink) effectiveTextColor.copy(alpha = cursorAlpha) else effectiveTextColor
+                            ),
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                             keyboardActions = KeyboardActions(onDone = { submitCommand(inputCommand) }),
                             singleLine = true,
                             decorationBox = { innerTextField ->
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    innerTextField()
-                                    Spacer(modifier = Modifier.width(2.dp))
-                                    Box(
-                                        modifier = Modifier
-                                            .width(8.dp)
-                                            .height((termSettings.fontSize + 2).dp)
-                                            .alpha(if (termSettings.cursorBlink) cursorAlpha else 1f)
-                                            .background(effectiveTextColor)
-                                    )
-                                }
+                                innerTextField()
                             }
                         )
                     }

@@ -1,5 +1,6 @@
 package com.example.backdoor.ui.apps
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,18 +17,28 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.Business
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Computer
 import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.Domain
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.GridOn
 import androidx.compose.material.icons.filled.Lan
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Router
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material3.Icon
@@ -35,6 +46,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -48,6 +60,10 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.backdoor.corporate.CorporateServer
+import com.example.backdoor.corporate.DataCenter
+import com.example.backdoor.corporate.IndustryType
+import com.example.backdoor.corporate.Organization
 import com.example.backdoor.core.NotificationLevel
 import com.example.backdoor.game.AbyssOSManager
 import com.example.backdoor.network.models.NetworkNode
@@ -66,8 +82,8 @@ import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 
 /**
- * AbyssNet Graphical Control Panel & Topology Visualizer.
- * Displays discovered network nodes, real-time links, interface states, and detailed device metadata.
+ * AbyssNet Graphical Control Panel, Corporate Grid & Topology Visualizer.
+ * Displays local network nodes, corporate organizations, data centers, server racks, and interface details.
  */
 @Composable
 fun NetworkApp(
@@ -76,21 +92,9 @@ fun NetworkApp(
     modifier: Modifier = Modifier
 ) {
     val nodes by osManager.networkEngine.nodes.collectAsState()
-    val connections by osManager.networkEngine.connections.collectAsState()
+    val orgs by osManager.corporateRepository.organizations.collectAsState()
 
-    var searchQuery by remember { mutableStateOf("") }
-    var selectedNodeTypeFilter by remember { mutableStateOf<NodeType?>(null) }
-    var selectedNode by remember { mutableStateOf<NetworkNode?>(nodes.firstOrNull()) }
-    var activeTab by remember { mutableStateOf(0) } // 0: Topology Map, 1: Devices List, 2: Interfaces
-
-    val filteredNodes = nodes.filter { node ->
-        val matchesQuery = searchQuery.isEmpty() ||
-            node.hostname.contains(searchQuery, ignoreCase = true) ||
-            node.ip.contains(searchQuery, ignoreCase = true) ||
-            node.ownerId.contains(searchQuery, ignoreCase = true)
-        val matchesType = selectedNodeTypeFilter == null || node.nodeType == selectedNodeTypeFilter
-        matchesQuery && matchesType
-    }
+    var activeTab by remember { mutableIntStateOf(0) } // 0: Local Map, 1: Corporate Grid, 2: Organizations, 3: Interfaces
 
     Column(
         modifier = modifier
@@ -98,7 +102,7 @@ fun NetworkApp(
             .background(AbyssBackground)
             .padding(10.dp)
     ) {
-        // Top Action Bar
+        // Top Action & Navigation Bar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -110,14 +114,14 @@ fun NetworkApp(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    imageVector = Icons.Default.Lan,
-                    contentDescription = "AbyssNet",
+                    imageVector = Icons.Default.GridOn,
+                    contentDescription = "Corporate Grid",
                     tint = accentColor,
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "ABYSSNET TOPOLOGY MONITOR",
+                    text = "CORPORATE GRID 0.6.0",
                     color = TextPrimary,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
@@ -126,14 +130,15 @@ fun NetworkApp(
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // Tab Selection
+                // Tab Buttons
                 Row(
                     modifier = Modifier
                         .clip(RoundedCornerShape(6.dp))
                         .background(AbyssBackground)
                         .padding(2.dp)
                 ) {
-                    listOf("TOPOLOGY", "DEVICES", "INTERFACES").forEachIndexed { index, label ->
+                    val tabs = listOf("LOCAL MAP", "GRID TREE", "ORGANIZATIONS", "INTERFACES")
+                    tabs.forEachIndexed { index, label ->
                         val isSelected = activeTab == index
                         Box(
                             modifier = Modifier
@@ -155,7 +160,7 @@ fun NetworkApp(
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                // Refresh / Scan Button
+                // Scan Subnet Button
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(6.dp))
@@ -164,8 +169,8 @@ fun NetworkApp(
                         .clickable {
                             val scanned = osManager.networkEngine.scanNetwork()
                             osManager.showNotification(
-                                title = "SUBNET DISCOVERY",
-                                message = "Discovered ${scanned.size} active network hosts.",
+                                title = "GRID SCAN COMPLETE",
+                                message = "Monitored ${scanned.size} nodes across ${orgs.size} organizations.",
                                 level = NotificationLevel.SUCCESS
                             )
                         }
@@ -180,7 +185,7 @@ fun NetworkApp(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "SCAN SUBNET",
+                            text = "SCAN GRID",
                             color = accentColor,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
@@ -193,38 +198,24 @@ fun NetworkApp(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Main Content Area based on selected Tab
+        // Main Content View
         when (activeTab) {
-            0 -> TopologyMapView(
-                nodes = nodes,
-                selectedNode = selectedNode,
-                onNodeSelect = { selectedNode = it },
-                accentColor = accentColor
-            )
-            1 -> DevicesListView(
-                nodes = filteredNodes,
-                selectedNode = selectedNode,
-                searchQuery = searchQuery,
-                onSearchChange = { searchQuery = it },
-                selectedFilter = selectedNodeTypeFilter,
-                onFilterSelect = { selectedNodeTypeFilter = it },
-                onNodeSelect = { selectedNode = it },
-                accentColor = accentColor
-            )
-            2 -> NetworkInterfacesView(osManager = osManager, accentColor = accentColor)
+            0 -> LocalTopologyMapView(nodes = nodes, accentColor = accentColor)
+            1 -> CorporateGridTreeView(orgs = orgs, accentColor = accentColor)
+            2 -> OrganizationsDirectoryView(osManager = osManager, orgs = orgs, accentColor = accentColor)
+            3 -> NetworkInterfacesView(osManager = osManager, accentColor = accentColor)
         }
     }
 }
 
 @Composable
-private fun TopologyMapView(
+private fun LocalTopologyMapView(
     nodes: List<NetworkNode>,
-    selectedNode: NetworkNode?,
-    onNodeSelect: (NetworkNode) -> Unit,
     accentColor: Color
 ) {
+    var selectedNode by remember { mutableStateOf<NetworkNode?>(nodes.firstOrNull()) }
+
     Row(modifier = Modifier.fillMaxSize()) {
-        // Topology Canvas Graph View
         Box(
             modifier = Modifier
                 .weight(1f)
@@ -232,22 +223,20 @@ private fun TopologyMapView(
                 .clip(RoundedCornerShape(8.dp))
                 .background(AbyssCard)
                 .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
-                .padding(16.dp)
+                .padding(12.dp)
         ) {
             Column {
                 Text(
-                    text = "VIRTUAL NETWORK MAP (LOCAL SUBNET 192.168.1.0/24)",
+                    text = "LOCAL SUBNET TOPOLOGY (192.168.1.0/24)",
                     color = TextMuted,
                     fontSize = 10.sp,
                     fontFamily = FontFamily.Monospace
                 )
+                Spacer(modifier = Modifier.height(10.dp))
 
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Network nodes layout grid
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(nodes) { node ->
                         val isSelected = selectedNode?.id == node.id
@@ -268,15 +257,15 @@ private fun TopologyMapView(
                                     color = if (isSelected) accentColor else Color.White.copy(alpha = 0.08f),
                                     shape = RoundedCornerShape(8.dp)
                                 )
-                                .clickable { onNodeSelect(node) }
-                                .padding(12.dp),
+                                .clickable { selectedNode = node }
+                                .padding(10.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Box(
                                     modifier = Modifier
-                                        .size(36.dp)
+                                        .size(32.dp)
                                         .clip(CircleShape)
                                         .background(statusColor.copy(alpha = 0.15f))
                                         .border(1.dp, statusColor.copy(alpha = 0.4f), CircleShape),
@@ -286,17 +275,17 @@ private fun TopologyMapView(
                                         imageVector = icon,
                                         contentDescription = node.hostname,
                                         tint = statusColor,
-                                        modifier = Modifier.size(18.dp)
+                                        modifier = Modifier.size(16.dp)
                                     )
                                 }
 
-                                Spacer(modifier = Modifier.width(12.dp))
+                                Spacer(modifier = Modifier.width(10.dp))
 
                                 Column {
                                     Text(
                                         text = node.hostname,
                                         color = TextPrimary,
-                                        fontSize = 13.sp,
+                                        fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
                                         fontFamily = FontFamily.Monospace
                                     )
@@ -341,7 +330,6 @@ private fun TopologyMapView(
 
         Spacer(modifier = Modifier.width(8.dp))
 
-        // Node Inspector Side Pane
         Box(
             modifier = Modifier
                 .width(240.dp)
@@ -357,85 +345,362 @@ private fun TopologyMapView(
 }
 
 @Composable
-private fun DevicesListView(
-    nodes: List<NetworkNode>,
-    selectedNode: NetworkNode?,
-    searchQuery: String,
-    onSearchChange: (String) -> Unit,
-    selectedFilter: NodeType?,
-    onFilterSelect: (NodeType?) -> Unit,
-    onNodeSelect: (NetworkNode) -> Unit,
+private fun CorporateGridTreeView(
+    orgs: List<Organization>,
     accentColor: Color
 ) {
-    Column(modifier = Modifier.fillMaxSize()) {
-        // Search & Filter controls
-        Row(
+    var expandedOrgId by remember { mutableStateOf<String?>(orgs.firstOrNull()?.id) }
+    var expandedDcId by remember { mutableStateOf<String?>(null) }
+    var selectedServer by remember { mutableStateOf<CorporateServer?>(null) }
+
+    Row(modifier = Modifier.fillMaxSize()) {
+        // Tree Hierarchy
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(6.dp))
-                .background(AbyssSurface)
-                .padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .weight(1f)
+                .fillMaxHeight()
+                .clip(RoundedCornerShape(8.dp))
+                .background(AbyssCard)
+                .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
+                .padding(12.dp)
         ) {
-            Icon(
-                imageVector = Icons.Default.Search,
-                contentDescription = "Search",
-                tint = TextMuted,
-                modifier = Modifier.size(16.dp)
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            BasicTextField(
-                value = searchQuery,
-                onValueChange = onSearchChange,
-                singleLine = true,
-                textStyle = TextStyle(color = TextPrimary, fontSize = 12.sp, fontFamily = FontFamily.Monospace),
-                modifier = Modifier.weight(1f)
-            )
+            Column {
+                Text(
+                    text = "GLOBAL CORPORATE INFRASTRUCTURE HIERARCHY (${orgs.size} ORGANIZATIONS)",
+                    color = TextMuted,
+                    fontSize = 10.sp,
+                    fontFamily = FontFamily.Monospace
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    items(orgs) { org ->
+                        val isOrgExpanded = expandedOrgId == org.id
+
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(AbyssSurface)
+                                .border(0.5.dp, if (isOrgExpanded) accentColor else Color.White.copy(alpha = 0.06f), RoundedCornerShape(6.dp))
+                        ) {
+                            // Organization Header
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { expandedOrgId = if (isOrgExpanded) null else org.id }
+                                    .padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.Business,
+                                        contentDescription = "Org",
+                                        tint = accentColor,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Column {
+                                        Text(
+                                            text = "${org.name} [${org.code}]",
+                                            color = TextPrimary,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            fontFamily = FontFamily.Monospace
+                                        )
+                                        Text(
+                                            text = "${org.industry.displayName} • Subnet: ${org.subnet} • ${org.dataCenters.size} DCs, ${org.servers.size} Servers",
+                                            color = TextMuted,
+                                            fontSize = 10.sp,
+                                            fontFamily = FontFamily.Monospace
+                                        )
+                                    }
+                                }
+
+                                Icon(
+                                    imageVector = if (isOrgExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                    contentDescription = "Toggle",
+                                    tint = TextMuted,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+
+                            // Data Centers list under expanded Org
+                            AnimatedVisibility(visible = isOrgExpanded) {
+                                Column(modifier = Modifier.padding(start = 16.dp, end = 8.dp, bottom = 8.dp)) {
+                                    org.dataCenters.forEach { dc ->
+                                        val isDcExpanded = expandedDcId == dc.id
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 2.dp)
+                                                .clip(RoundedCornerShape(4.dp))
+                                                .background(AbyssBackground)
+                                                .padding(6.dp)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clickable { expandedDcId = if (isDcExpanded) null else dc.id },
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Domain,
+                                                        contentDescription = "DC",
+                                                        tint = CyberCyan,
+                                                        modifier = Modifier.size(14.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Text(
+                                                        text = "${dc.name} (${dc.location})",
+                                                        color = CyberCyan,
+                                                        fontSize = 11.sp,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        fontFamily = FontFamily.Monospace
+                                                    )
+                                                }
+                                                Text(
+                                                    text = "${dc.serversCount} Nodes",
+                                                    color = TextMuted,
+                                                    fontSize = 10.sp,
+                                                    fontFamily = FontFamily.Monospace
+                                                )
+                                            }
+
+                                            // Servers under Data Center
+                                            AnimatedVisibility(visible = isDcExpanded) {
+                                                Column(modifier = Modifier.padding(start = 12.dp, top = 4.dp)) {
+                                                    val dcServers = org.servers.filter { it.dataCenterId == dc.id }
+                                                    dcServers.forEach { server ->
+                                                        Row(
+                                                            modifier = Modifier
+                                                                .fillMaxWidth()
+                                                                .padding(vertical = 2.dp)
+                                                                .clip(RoundedCornerShape(4.dp))
+                                                                .background(if (selectedServer?.id == server.id) accentColor.copy(alpha = 0.2f) else AbyssSurfaceVariant)
+                                                                .clickable { selectedServer = server }
+                                                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            horizontalArrangement = Arrangement.SpaceBetween
+                                                        ) {
+                                                            Text(
+                                                                text = "${server.name} (${server.ip})",
+                                                                color = TextPrimary,
+                                                                fontSize = 10.sp,
+                                                                fontFamily = FontFamily.Monospace
+                                                            )
+                                                            Text(
+                                                                text = server.type.displayName,
+                                                                color = StatusConnected,
+                                                                fontSize = 9.sp,
+                                                                fontFamily = FontFamily.Monospace
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
+        Spacer(modifier = Modifier.width(8.dp))
+
+        // Server Detail Side Pane
+        Box(
+            modifier = Modifier
+                .width(260.dp)
+                .fillMaxHeight()
+                .clip(RoundedCornerShape(8.dp))
+                .background(AbyssCard)
+                .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
+                .padding(12.dp)
+        ) {
+            CorporateServerInspector(server = selectedServer, accentColor = accentColor)
+        }
+    }
+}
+
+@Composable
+private fun OrganizationsDirectoryView(
+    osManager: AbyssOSManager,
+    orgs: List<Organization>,
+    accentColor: Color
+) {
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedIndustry by remember { mutableStateOf<IndustryType?>(null) }
+    var selectedOrg by remember { mutableStateOf<Organization?>(orgs.firstOrNull()) }
+
+    val filteredOrgs = remember(searchQuery, selectedIndustry, orgs) {
+        osManager.corporateRepository.filterOrganizations(
+            industry = selectedIndustry,
+            query = searchQuery
+        )
+    }
+
+    Row(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+        ) {
+            // Search & Industry Filter Row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(AbyssSurface)
+                    .padding(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Default.Search, contentDescription = "Search", tint = TextMuted, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                BasicTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    singleLine = true,
+                    textStyle = TextStyle(color = TextPrimary, fontSize = 12.sp, fontFamily = FontFamily.Monospace),
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Industry Filter Chips
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(if (selectedIndustry == null) accentColor else AbyssSurface)
+                            .clickable { selectedIndustry = null }
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text("ALL INDUSTRIES", color = if (selectedIndustry == null) AbyssBackground else TextPrimary, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+                items(IndustryType.entries.toTypedArray()) { ind ->
+                    val isSel = selectedIndustry == ind
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(if (isSel) accentColor else AbyssSurface)
+                            .clickable { selectedIndustry = if (isSel) null else ind }
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(ind.displayName, color = if (isSel) AbyssBackground else TextMuted, fontSize = 10.sp)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Organizations List Table
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                items(filteredOrgs) { org ->
+                    val isSel = selectedOrg?.id == org.id
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(if (isSel) accentColor.copy(alpha = 0.15f) else AbyssCard)
+                            .border(0.5.dp, if (isSel) accentColor else Color.White.copy(alpha = 0.06f), RoundedCornerShape(6.dp))
+                            .clickable { selectedOrg = org }
+                            .padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text(text = org.name, color = TextPrimary, fontSize = 13.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                            Text(text = "${org.industry.displayName} • Domain: ${org.domain}", color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                        }
+
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(text = "Security Tier ${org.securityLevel}", color = CyberCyan, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                            Text(text = "${org.servers.size} Servers", color = StatusConnected, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        // Organization Detail Inspector Panel
+        Box(
+            modifier = Modifier
+                .width(270.dp)
+                .fillMaxHeight()
+                .clip(RoundedCornerShape(8.dp))
+                .background(AbyssCard)
+                .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
+                .padding(12.dp)
+        ) {
+            OrganizationDetailInspector(org = selectedOrg, accentColor = accentColor)
+        }
+    }
+}
+
+@Composable
+private fun CorporateServerInspector(server: CorporateServer?, accentColor: Color) {
+    if (server == null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(text = "Select a corporate server from the tree to inspect.", color = TextMuted, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+        }
+        return
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        Text("SERVER NODE INSPECTOR", color = accentColor, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Devices Table View
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-        ) {
-            items(nodes) { node ->
+        Text(server.name, color = TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+        Text(server.domain, color = CyberCyan, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        DetailRow("IP Address", server.ip)
+        DetailRow("MAC Address", server.mac)
+        DetailRow("Server Class", server.type.displayName)
+        DetailRow("Security Clearance", "Level ${server.securityLevel}")
+        DetailRow("Rack Assignment", server.rackId)
+        DetailRow("Data Center ID", server.dataCenterId)
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text("EXPOSED SERVICES (${server.services.size})", color = TechPurple, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+        Spacer(modifier = Modifier.height(4.dp))
+
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            items(server.services) { svc ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 3.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(AbyssCard)
-                        .border(0.5.dp, Color.White.copy(alpha = 0.06f), RoundedCornerShape(6.dp))
-                        .clickable { onNodeSelect(node) }
-                        .padding(10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(AbyssSurface)
+                        .padding(6.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Column {
-                        Text(
-                            text = node.hostname,
-                            color = TextPrimary,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace
-                        )
-                        Text(
-                            text = "IP: ${node.ip} | MAC: ${node.mac}",
-                            color = TextMuted,
-                            fontSize = 10.sp,
-                            fontFamily = FontFamily.Monospace
-                        )
-                    }
-                    Text(
-                        text = node.status.name,
-                        color = if (node.status == NodeStatus.ONLINE) StatusConnected else NeonRed,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Monospace
-                    )
+                    Text("${svc.name} :${svc.port}", color = TextPrimary, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                    Text(if (svc.isOpen) "OPEN" else "CLOSED", color = if (svc.isOpen) StatusConnected else NeonRed, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
                 }
             }
         }
@@ -443,36 +708,89 @@ private fun DevicesListView(
 }
 
 @Composable
-private fun NetworkInterfacesView(
-    osManager: AbyssOSManager,
-    accentColor: Color
-) {
+private fun OrganizationDetailInspector(org: Organization?, accentColor: Color) {
+    if (org == null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(text = "Select an organization to view detailed corporate specs.", color = TextMuted, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+        }
+        return
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        Text("ORGANIZATION PROFILE", color = accentColor, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(org.name, color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+        Text("Code: ${org.code} • ${org.domain}", color = CyberCyan, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Text(org.description, color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        DetailRow("Industry Sector", org.industry.displayName)
+        DetailRow("Security Level", "Tier ${org.securityLevel} / 5")
+        DetailRow("Reputation Rating", "${org.reputation} / 100")
+        DetailRow("Annual Budget", "$${String.format("%,d", org.budget)}")
+        DetailRow("Employees", String.format("%,d", org.employeeCount))
+        DetailRow("Subnet Range", org.subnet)
+        DetailRow("Topology Scheme", org.topologyType.displayName)
+        DetailRow("Data Centers", "${org.dataCenters.size} DC facilities")
+        DetailRow("Active Servers", "${org.servers.size} Nodes")
+    }
+}
+
+@Composable
+private fun NetworkInterfacesView(osManager: AbyssOSManager, accentColor: Color) {
     val ifconfig = osManager.networkEngine.getIfconfig()
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .clip(RoundedCornerShape(8.dp))
-            .background(AbyssCard)
-            .padding(14.dp)
-    ) {
-        LazyColumn {
-            items(ifconfig) { line ->
-                Text(
-                    text = line,
-                    color = TextPrimary,
-                    fontSize = 11.sp,
-                    fontFamily = FontFamily.Monospace
-                )
+    val netstat = osManager.networkEngine.getNetstat()
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .clip(RoundedCornerShape(8.dp))
+                .background(AbyssCard)
+                .padding(12.dp)
+        ) {
+            Column {
+                Text("NETWORK INTERFACES CONFIGURATION", color = accentColor, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                Spacer(modifier = Modifier.height(8.dp))
+                LazyColumn {
+                    items(ifconfig) { line ->
+                        Text(line, color = TextPrimary, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .clip(RoundedCornerShape(8.dp))
+                .background(AbyssCard)
+                .padding(12.dp)
+        ) {
+            Column {
+                Text("ACTIVE SOCKET CONNECTIONS (NETSTAT)", color = CyberCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                Spacer(modifier = Modifier.height(8.dp))
+                LazyColumn {
+                    items(netstat) { line ->
+                        Text(line, color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun NodeDetailInspector(
-    node: NetworkNode?,
-    accentColor: Color
-) {
+private fun NodeDetailInspector(node: NetworkNode?, accentColor: Color) {
     if (node == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(text = "Select a node to inspect.", color = TextMuted, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
@@ -481,17 +799,11 @@ private fun NodeDetailInspector(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        Text(
-            text = "NODE INSPECTOR",
-            color = accentColor,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
-            fontFamily = FontFamily.Monospace
-        )
+        Text("LOCAL NODE INSPECTOR", color = accentColor, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
         Spacer(modifier = Modifier.height(10.dp))
 
-        Text(text = node.hostname, color = TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
-        Text(text = node.ip, color = CyberCyan, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+        Text(node.hostname, color = TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+        Text(node.ip, color = CyberCyan, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
 
         Spacer(modifier = Modifier.height(12.dp))
 
@@ -503,13 +815,7 @@ private fun NodeDetailInspector(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        Text(
-            text = "ACTIVE SERVICES (${node.services.size})",
-            color = TechPurple,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Bold,
-            fontFamily = FontFamily.Monospace
-        )
+        Text("ACTIVE SERVICES (${node.services.size})", color = TechPurple, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
         Spacer(modifier = Modifier.height(6.dp))
 
         LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -522,8 +828,8 @@ private fun NodeDetailInspector(
                         .padding(6.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(text = "${s.name} :${s.port}", color = TextPrimary, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
-                    Text(text = if (s.isOpen) "OPEN" else "CLOSED", color = if (s.isOpen) StatusConnected else NeonRed, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                    Text("${s.name} :${s.port}", color = TextPrimary, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                    Text(if (s.isOpen) "OPEN" else "CLOSED", color = if (s.isOpen) StatusConnected else NeonRed, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
                 }
             }
         }

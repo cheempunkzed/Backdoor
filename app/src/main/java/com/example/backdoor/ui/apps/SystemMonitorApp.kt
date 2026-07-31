@@ -19,8 +19,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
@@ -41,6 +39,8 @@ import com.example.ui.theme.AbyssCard
 import com.example.ui.theme.AbyssSurface
 import com.example.ui.theme.CyberCyan
 import com.example.ui.theme.NeonRed
+import com.example.ui.theme.StatusConnected
+import com.example.ui.theme.TechPurple
 import com.example.ui.theme.TerminalGreen
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
@@ -53,6 +53,9 @@ fun SystemMonitorApp(
 ) {
     val status by osManager.systemStatus.collectAsState()
     val processes by osManager.processManager.processes.collectAsState()
+    val orgs by osManager.corporateRepository.organizations.collectAsState()
+    val totalServers by osManager.corporateRepository.totalServersCount.collectAsState()
+    val totalDcs by osManager.corporateRepository.totalDataCentersCount.collectAsState()
 
     Column(
         modifier = modifier
@@ -61,7 +64,7 @@ fun SystemMonitorApp(
             .padding(10.dp)
     ) {
         Text(
-            text = "=== SYSTEM MONITOR | AbyssOS 0.3.0 ===",
+            text = "=== SYSTEM MONITOR | AbyssOS 0.6.0 ===",
             color = accentColor,
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
@@ -92,7 +95,47 @@ fun SystemMonitorApp(
             )
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Corporate Network Infrastructure Card
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(6.dp))
+                .background(AbyssCard)
+                .border(0.5.dp, CyberCyan.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                .padding(10.dp)
+        ) {
+            Column {
+                Text(
+                    text = "NETWORK INFRASTRUCTURE MONITOR (ABYSSNET CORPORATE GRID)",
+                    color = CyberCyan,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text("Active Orgs: ${orgs.size}", color = TextPrimary, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+                        Text("Data Centers: $totalDcs", color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                    }
+                    Column {
+                        Text("Corporate Nodes: $totalServers", color = StatusConnected, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                        Text("Monitored Subnets: 105", color = TechPurple, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text("Grid Status: NOMINAL", color = StatusConnected, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                        Text("Virtual Link: 10 Gbps", color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
 
         Text(
             text = "ACTIVE PROCESS KERNEL (${processes.size} PROCESSES)",
