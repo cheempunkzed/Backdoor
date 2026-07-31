@@ -33,6 +33,9 @@ interface SaveManager {
 
     suspend fun getSecurityFrameworkJson(): String?
     suspend fun saveSecurityFrameworkJson(json: String): Boolean
+
+    suspend fun getDarknetJson(): String?
+    suspend fun saveDarknetJson(json: String): Boolean
 }
 
 class MemorySaveManager(
@@ -47,6 +50,7 @@ class MemorySaveManager(
     private var storedNetworkJson: String? = null
     private var storedCorporateJson: String? = null
     private var storedSecurityJson: String? = null
+    private var storedDarknetJson: String? = null
 
     private val _currentSave = MutableStateFlow<SaveSlotEntity?>(
         SaveSlotEntity(
@@ -54,7 +58,7 @@ class MemorySaveManager(
             saveName = "AbyssOS Default Profile",
             timestamp = System.currentTimeMillis(),
             playerHandle = "operator",
-            osVersion = "0.7.0"
+            osVersion = "0.8.0"
         )
     )
     override val currentSaveState: Flow<SaveSlotEntity?> = _currentSave.asStateFlow()
@@ -178,6 +182,15 @@ class MemorySaveManager(
 
     override suspend fun saveSecurityFrameworkJson(json: String): Boolean {
         storedSecurityJson = json
+        return true
+    }
+
+    override suspend fun getDarknetJson(): String? {
+        return storedDarknetJson
+    }
+
+    override suspend fun saveDarknetJson(json: String): Boolean {
+        storedDarknetJson = json
         return true
     }
 }

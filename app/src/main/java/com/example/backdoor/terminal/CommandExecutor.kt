@@ -38,6 +38,7 @@ import com.example.backdoor.terminal.commands.VersionCommand
 import com.example.backdoor.terminal.commands.WhoAmICommand
 import com.example.backdoor.terminal.commands.WhoisCommand
 import com.example.backdoor.terminal.commands.SecurityCommand
+import com.example.backdoor.terminal.commands.OnionCommand
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
@@ -89,6 +90,7 @@ class CommandRegistry {
 
         // Security Framework Commands
         registerCommand(SecurityCommand())
+        registerCommand(OnionCommand())
     }
 
     fun registerCommand(command: Command) {

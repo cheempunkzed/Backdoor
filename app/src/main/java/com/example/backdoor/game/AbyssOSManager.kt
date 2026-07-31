@@ -68,6 +68,7 @@ class AbyssOSManager(
     val networkEngine = com.example.backdoor.network.engine.AbyssNetworkEngine()
     val corporateRepository = com.example.backdoor.corporate.CorporateGridRepository()
     val securityFramework = com.example.backdoor.security.core.OffensiveSecurityFramework(scope, vfs)
+    val darknetEngine = com.example.backdoor.darknet.engine.OnionNetworkEngine()
 
     private val _osState = MutableStateFlow(OsState.BOOTING)
     val osState: StateFlow<OsState> = _osState.asStateFlow()
@@ -113,7 +114,8 @@ class AbyssOSManager(
     init {
         corporateRepository.registerWithNetworkEngine(networkEngine)
         securityFramework.updateVfs(vfs)
-        addSystemLog("KERNEL", "AbyssOS 0.7.0 Offensive Security Framework initialized.", LogLevel.INFO)
+        securityFramework.darkNetHook = darknetEngine
+        addSystemLog("KERNEL", "AbyssOS 0.8.0 Onion Network Dark Layer initialized.", LogLevel.INFO)
         startStatusTicker()
 
         scope.launch {

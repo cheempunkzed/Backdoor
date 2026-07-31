@@ -165,7 +165,36 @@ fun BrowserApp(
             }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(6.dp))
+
+        // Quick Bookmarks Bar
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("BOOKMARKS:", color = TextMuted, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
+            val bookmarks = listOf("dir.onion", "abyss-forum.onion", "blackvault.onion", "darkmarket.onion", "wiki.abyss", "router.local")
+            bookmarks.forEach { bmark ->
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(if (bmark.endsWith(".onion")) TechPurple.copy(alpha = 0.2f) else AbyssSurface)
+                        .border(0.5.dp, if (bmark.endsWith(".onion")) TechPurple.copy(alpha = 0.5f) else Color.Transparent, RoundedCornerShape(4.dp))
+                        .clickable {
+                            currentUrl = bmark
+                            urlInput = bmark
+                        }
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                ) {
+                    Text(bmark, color = if (bmark.endsWith(".onion")) TechPurple else TextPrimary, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(6.dp))
 
         // Page Render Canvas
         Box(
@@ -178,6 +207,17 @@ fun BrowserApp(
                 .padding(16.dp)
         ) {
             when {
+                currentUrl.endsWith(".onion", ignoreCase = true) || currentUrl.equals("darknet", ignoreCase = true) -> {
+                    OnionWebPage(
+                        url = currentUrl,
+                        osManager = osManager,
+                        accentColor = accentColor,
+                        onNavigate = { newUrl ->
+                            currentUrl = newUrl
+                            urlInput = newUrl
+                        }
+                    )
+                }
                 currentUrl.equals("router.local", ignoreCase = true) || currentUrl.equals("192.168.1.1") -> {
                     RouterWebPage(osManager = osManager, accentColor = accentColor)
                 }
@@ -540,3 +580,350 @@ private fun WikiWebPage(osManager: AbyssOSManager, accentColor: Color) {
         }
     }
 }
+
+@Composable
+private fun OnionWebPage(
+    url: String,
+    osManager: AbyssOSManager,
+    accentColor: Color,
+    onNavigate: (String) -> Unit
+) {
+    val darknet = osManager.darknetEngine
+    val hiddenServices by darknet.hiddenServices.collectAsState()
+    val threads by darknet.forumThreads.collectAsState()
+    val marketListings by darknet.marketListings.collectAsState()
+    val rep by darknet.playerReputation.collectAsState()
+    val relays by darknet.relayNodes.collectAsState()
+
+    var selectedThreadId by remember { mutableStateOf(threads.firstOrNull()?.id) }
+    var replyInput by remember { mutableStateOf("") }
+    var newThreadTitle by remember { mutableStateOf("") }
+    var newThreadCategory by remember { mutableStateOf("General") }
+    var newThreadContent by remember { mutableStateOf("") }
+    var showNewThreadDialog by remember { mutableStateOf(false) }
+
+    val activeService = hiddenServices.find { it.address.equals(url, ignoreCase = true) }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Onion Circuit Header Bar
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(6.dp))
+                .background(TechPurple.copy(alpha = 0.15f))
+                .border(0.5.dp, TechPurple.copy(alpha = 0.5f), RoundedCornerShape(6.dp))
+                .padding(8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Security,
+                        contentDescription = "Onion Circuit",
+                        tint = TechPurple,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "ABYSSNET ONION ROUTED SESSION | HOPS: ${relays.take(3).joinToString(" → ") { it.alias }}",
+                        color = TechPurple,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace
+                    )
+                }
+
+                Text(
+                    text = "REPUTATION: ${rep.rank.title} (Trust: ${rep.trust} | Fame: ${rep.fame})",
+                    color = StatusConnected,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Content Display based on URL
+        when {
+            url.equals("dir.onion", ignoreCase = true) || url.equals("darknet", ignoreCase = true) -> {
+                Text("=== HIDDEN SERVICES DIRECTORY (DIR.ONION) ===", color = TechPurple, fontSize = 14.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                Text("Indexed Hidden Nodes on AbyssNet Onion Network", color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                Spacer(modifier = Modifier.height(8.dp))
+
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(hiddenServices) { hs ->
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(AbyssSurface)
+                                .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(6.dp))
+                                .padding(10.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(hs.name, color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(4.dp))
+                                                .background(TechPurple.copy(alpha = 0.2f))
+                                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                                        ) {
+                                            Text(hs.accessLevel.displayName, color = TechPurple, fontSize = 8.sp, fontFamily = FontFamily.Monospace)
+                                        }
+                                    }
+                                    Text(hs.address, color = CyberCyan, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(hs.description, color = TextMuted, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(TechPurple)
+                                        .clickable { onNavigate(hs.address) }
+                                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                                ) {
+                                    Text("CONNECT", color = Color.Black, fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            url.equals("abyss-forum.onion", ignoreCase = true) -> {
+                Row(modifier = Modifier.fillMaxSize()) {
+                    // Threads Sidebar
+                    Column(
+                        modifier = Modifier
+                            .width(260.dp)
+                            .fillMaxHeight()
+                            .padding(end = 8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("ABYSS FORUM THREADS", color = TechPurple, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(TechPurple.copy(alpha = 0.2f))
+                                    .clickable { showNewThreadDialog = !showNewThreadDialog }
+                                    .padding(horizontal = 6.dp, vertical = 3.dp)
+                            ) {
+                                Text("+ NEW THREAD", color = TechPurple, fontSize = 8.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        LazyColumn(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            items(threads) { th ->
+                                val isSel = th.id == selectedThreadId
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(if (isSel) TechPurple.copy(alpha = 0.2f) else AbyssSurface)
+                                        .border(0.5.dp, if (isSel) TechPurple else Color.Transparent, RoundedCornerShape(6.dp))
+                                        .clickable { selectedThreadId = th.id }
+                                        .padding(8.dp)
+                                ) {
+                                    Column {
+                                        Text(th.title, color = if (isSel) TechPurple else TextPrimary, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text("By ${th.authorHandle}", color = CyberCyan, fontSize = 8.sp, fontFamily = FontFamily.Monospace)
+                                            Text("${th.posts.size} posts", color = TextMuted, fontSize = 8.sp, fontFamily = FontFamily.Monospace)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Thread Posts & Reply Reader
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(AbyssSurface)
+                            .padding(10.dp)
+                    ) {
+                        val activeThread = threads.find { it.id == selectedThreadId }
+                        if (activeThread != null) {
+                            Column(modifier = Modifier.fillMaxSize()) {
+                                Text(activeThread.title, color = TextPrimary, fontSize = 13.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                                Text("Category: ${activeThread.category} | Started by @${activeThread.authorHandle}", color = TextMuted, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                LazyColumn(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    items(activeThread.posts) { p ->
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(4.dp))
+                                                .background(AbyssBackground)
+                                                .border(0.5.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(4.dp))
+                                                .padding(8.dp)
+                                        ) {
+                                            Column {
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween
+                                                ) {
+                                                    Text("@${p.authorHandle}", color = CyberCyan, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                                                    Text("▲ ${p.upvotes}", color = StatusConnected, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
+                                                }
+                                                Spacer(modifier = Modifier.height(4.dp))
+                                                Text(p.content, color = TextPrimary, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                // Reply Box
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(AbyssBackground)
+                                        .border(0.5.dp, TechPurple.copy(alpha = 0.4f), RoundedCornerShape(4.dp))
+                                        .padding(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    BasicTextField(
+                                        value = replyInput,
+                                        onValueChange = { replyInput = it },
+                                        singleLine = true,
+                                        textStyle = TextStyle(color = TextPrimary, fontSize = 10.sp, fontFamily = FontFamily.Monospace),
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .background(TechPurple)
+                                            .clickable {
+                                                if (replyInput.isNotBlank()) {
+                                                    darknet.postReplyToThread(activeThread.id, replyInput, "operator")
+                                                    replyInput = ""
+                                                }
+                                            }
+                                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Text("REPLY", color = Color.Black, fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            url.equals("darkmarket.onion", ignoreCase = true) -> {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    Text("=== SHADOW EXCHANGE MARKET FOUNDATION ===", color = TechPurple, fontSize = 14.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                    Text("Decentralized Directory of Tools & Hardware Schematics", color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(marketListings) { item ->
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(AbyssSurface)
+                                    .padding(10.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(item.title, color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                                        Text("Seller: @${item.sellerHandle} (★ ${item.sellerRating}) | Category: ${item.category}", color = CyberCyan, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(item.description, color = TextMuted, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
+                                    }
+                                    Column(horizontalAlignment = Alignment.End) {
+                                        Text("${item.priceCredits} CREDITS", color = StatusConnected, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(4.dp))
+                                                .background(TechPurple.copy(alpha = 0.2f))
+                                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                        ) {
+                                            Text("LISTING VERIFIED", color = TechPurple, fontSize = 8.sp, fontFamily = FontFamily.Monospace)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            else -> {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    Text("=== ${activeService?.name ?: url.uppercase()} ===", color = TechPurple, fontSize = 14.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                    Text("Service Address: $url", color = CyberCyan, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(AbyssSurface)
+                            .padding(12.dp)
+                    ) {
+                        Column {
+                            Text("Service Type: ${activeService?.type?.displayName ?: "Encrypted Node"}", color = TextPrimary, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+                            Text("Access Clearance: ${activeService?.accessLevel?.displayName ?: "Public Access"}", color = StatusConnected, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                            Text("Owner: @${activeService?.ownerHandle ?: "anonymous"}", color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text(activeService?.description ?: "Encrypted darknet node active on AbyssNet Onion Network.", color = TextPrimary, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
