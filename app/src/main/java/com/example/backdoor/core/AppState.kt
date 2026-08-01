@@ -407,7 +407,14 @@ class DarkNetAppState : AppState {
 }
 
 class NetworkAppState : AppState {
-    var selectedTab = mutableStateOf("TOPOLOGY")
+    var selectedTab = mutableStateOf("0") // maps to activeTab/selectedViewMode
+    var selectedOrgId = mutableStateOf<String?>(null)
+    var searchQuery = mutableStateOf("")
+    var selectedIndustry = mutableStateOf<com.example.backdoor.corporate.IndustryType?>(null)
+    var selectedNodeId = mutableStateOf<String?>(null)
+    var selectedServerId = mutableStateOf<String?>(null)
+    var currentSortMode = mutableStateOf("NAME") // NAME, SECURITY, REPUTATION, SERVERS
+    var zoomLevel = mutableStateOf(1.0f) // zoom level for Grid Tree / Topology Map
 }
 
 class LogsAppState : AppState {

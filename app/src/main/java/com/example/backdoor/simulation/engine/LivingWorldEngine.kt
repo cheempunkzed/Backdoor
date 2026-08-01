@@ -212,7 +212,7 @@ class LivingWorldEngine(
 
     private fun simulateTick() {
         val time = gameClock.time.value
-        eventBus.emit(SystemEvent.NotificationTriggered("LIVING_WORLD", "Time ticked to $time", com.example.backdoor.core.NotificationLevel.INFO))
+        eventBus.emit(SystemEvent.NotificationTriggered("LIVING_WORLD", "Time ticked to $time", com.example.backdoor.core.NotificationLevel.INFO, com.example.backdoor.core.NotificationPriority.BACKGROUND))
         
         // 1. Employee routines
         simulateEmployees(time)

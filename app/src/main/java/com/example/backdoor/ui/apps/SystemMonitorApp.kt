@@ -45,6 +45,9 @@ import com.example.ui.theme.TerminalGreen
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 
+import com.example.backdoor.simulation.models.Incident
+import com.example.backdoor.simulation.models.IncidentType
+
 @Composable
 fun SystemMonitorApp(
     osManager: AbyssOSManager,
@@ -56,6 +59,9 @@ fun SystemMonitorApp(
     val orgs by osManager.corporateRepository.organizations.collectAsState()
     val totalServers by osManager.corporateRepository.totalServersCount.collectAsState()
     val totalDcs by osManager.corporateRepository.totalDataCentersCount.collectAsState()
+    val incidents by osManager.livingWorldEngine.incidents.collectAsState()
+    val nodes by osManager.networkEngine.nodes.collectAsState()
+    val systemLogs by osManager.systemLogs.collectAsState()
 
     Column(
         modifier = modifier
@@ -97,7 +103,7 @@ fun SystemMonitorApp(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Corporate Network Infrastructure Card
+        // Corporate Network Infrastructure Card (Expanded Telemetry)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -115,6 +121,8 @@ fun SystemMonitorApp(
                     fontFamily = FontFamily.Monospace
                 )
                 Spacer(modifier = Modifier.height(6.dp))
+                
+                // Row 1: Core Node Counts
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -125,11 +133,81 @@ fun SystemMonitorApp(
                     }
                     Column {
                         Text("Corporate Nodes: $totalServers", color = StatusConnected, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
-                        Text("Monitored Subnets: 105", color = TechPurple, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                        Text("Network Nodes: ${nodes.size}", color = TechPurple, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
                     }
                     Column(horizontalAlignment = Alignment.End) {
                         Text("Grid Status: NOMINAL", color = StatusConnected, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
-                        Text("Virtual Link: 10 Gbps", color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                        Text("Monitored Subnets: 105", color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                androidx.compose.material3.HorizontalDivider(color = Color.White.copy(alpha = 0.08f))
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Row 2: Traffic Simulation & Online Services
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    val activeNodeFactor = nodes.size.coerceAtLeast(1)
+                    val simBandwidth = String.format("%.2f", 3.4 + (activeNodeFactor % 7) * 0.42)
+                    val simPackets = String.format("%,d", 124500 + (activeNodeFactor % 13) * 3240)
+                    val simOnlineServers = totalServers - (incidents.count { it.type.name == "HARDWARE_FAILURE" } % 4)
+
+                    Column {
+                        Text("TRAFFIC SIMULATION", color = CyberCyan, fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                        Text("Bandwidth: $simBandwidth Gbps", color = TextPrimary, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                        Text("Packets: $simPackets p/s", color = TextMuted, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
+                    }
+                    
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text("ONLINE SERVICES", color = StatusConnected, fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                        Text("Active Nodes: $simOnlineServers / $totalServers", color = TextPrimary, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                        Text("SLA Delivery: 99.98%", color = TextMuted, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
+                    }
+                }
+
+                if (incidents.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    androidx.compose.material3.HorizontalDivider(color = Color.White.copy(alpha = 0.08f))
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text("RECENT SECURITY INCIDENTS & THREAT LOGS", color = NeonRed, fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    incidents.takeLast(2).reversed().forEach { inc ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "• [${inc.severity}] ${inc.type} at ${orgs.find { it.id == inc.organizationId }?.name ?: "Corp"}",
+                                color = TextPrimary,
+                                fontSize = 9.sp,
+                                fontFamily = FontFamily.Monospace,
+                                maxLines = 1,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text(text = inc.timestamp, color = TextMuted, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
+                        }
+                    }
+                }
+
+                val livingWorldLogs = systemLogs.filter { it.tag == "LIVING_WORLD" || it.tag == "INCIDENT" }.takeLast(2).reversed()
+                if (livingWorldLogs.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    androidx.compose.material3.HorizontalDivider(color = Color.White.copy(alpha = 0.08f))
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text("LIVING WORLD CHRONOLOGY", color = TechPurple, fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    livingWorldLogs.forEach { log ->
+                        Text(
+                            text = "• ${log.message}",
+                            color = TextMuted,
+                            fontSize = 9.sp,
+                            fontFamily = FontFamily.Monospace,
+                            maxLines = 1
+                        )
                     }
                 }
             }

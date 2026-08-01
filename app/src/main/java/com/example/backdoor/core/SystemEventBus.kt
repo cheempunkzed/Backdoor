@@ -10,7 +10,12 @@ sealed class SystemEvent {
     data class OnionRouteEstablished(val targetOnion: String) : SystemEvent()
     data class FileDownloaded(val filePath: String) : SystemEvent()
     data class AppRequested(val targetApp: com.example.backdoor.game.OsApp, val payload: String? = null) : SystemEvent()
-    data class NotificationTriggered(val title: String, val message: String, val level: NotificationLevel = NotificationLevel.INFO) : SystemEvent()
+    data class NotificationTriggered(
+        val title: String,
+        val message: String,
+        val level: NotificationLevel = NotificationLevel.INFO,
+        val priority: NotificationPriority = NotificationPriority.INFO
+    ) : SystemEvent()
 }
 
 class SystemEventBus {

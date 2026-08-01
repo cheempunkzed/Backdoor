@@ -9,10 +9,18 @@ enum class NotificationLevel {
     ERROR
 }
 
+enum class NotificationPriority {
+    SYSTEM,
+    IMPORTANT,
+    INFO,
+    BACKGROUND
+}
+
 data class OsNotification(
     val id: String = UUID.randomUUID().toString(),
     val title: String,
     val message: String,
     val level: NotificationLevel = NotificationLevel.INFO,
+    val priority: NotificationPriority = NotificationPriority.INFO,
     val timestamp: Long = System.currentTimeMillis()
 )

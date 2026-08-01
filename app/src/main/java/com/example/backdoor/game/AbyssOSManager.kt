@@ -233,7 +233,17 @@ class AbyssOSManager(
                         // payload would go to the App Instance if it supported it.
                     }
                     is com.example.backdoor.core.SystemEvent.NotificationTriggered -> {
-                        showNotification(event.title, event.message, event.level)
+                        val logLevel = when (event.level) {
+                            com.example.backdoor.core.NotificationLevel.INFO -> com.example.backdoor.core.LogLevel.INFO
+                            com.example.backdoor.core.NotificationLevel.SUCCESS -> com.example.backdoor.core.LogLevel.INFO
+                            com.example.backdoor.core.NotificationLevel.WARNING -> com.example.backdoor.core.LogLevel.WARN
+                            com.example.backdoor.core.NotificationLevel.ERROR -> com.example.backdoor.core.LogLevel.ERROR
+                        }
+                        addSystemLog(event.title, event.message, logLevel)
+                        
+                        if (event.priority != com.example.backdoor.core.NotificationPriority.BACKGROUND) {
+                            showNotification(event.title, event.message, event.level)
+                        }
                     }
                     else -> {}
                 }
