@@ -1,16 +1,17 @@
-## [1.0.0] - 2026-07-31
-### Development Milestone 9: Shadow Economy
-#### Added
-- **ShadowEconomyEngine**: Central financial simulator governing market, contracts, and banking.
-- **Digital Banking (Wallet)**: Handles Credits (CR), AbyssCoin (ABC), and tokens.
-- **Contracts System**: Implements public, freelance, and corporate jobs with rewards.
-- **Digital Marketplace**: Dynamic store for hardware, software, licenses, and cosmetics.
-- **Mail  News Services**: In-OS communications and simulated global events.
-- **New UI Applications**: Wallet, Contracts, Marketplace, Mail, News, Inventory integrated into desktop and taskbar.
-
 # AbyssOS Changelog
 
 All notable changes to the Backdoor project will be documented in this file.
+
+## [1.1.0] - 2026-08-01
+### Development Milestone 1.1.0: Abyssos Hybrid Interface
+#### Added
+- **Application Display Modes (`ApplicationDisplayMode`)**: Full support for `FULLSCREEN`, `WINDOWED`, and `MINIMIZED` application display modes across all 14 OS applications.
+- **Mobile Cyber Header & Back Navigation**: Dedicated mobile control header for fullscreen applications with back/minimize controls, app icon badge, and mode switcher.
+- **Hybrid Window Manager Extensions**: Extended `WindowManager` and `AbyssOSManager` to seamlessly switch display modes while retaining process state (`AppState`) without app recreation.
+- **Enhanced Mobile Task Dock**: Expanded `BottomDock` taskbar with running app indicators, background process status, and contextual app menus ("Open Fullscreen", "Open Windowed", "Pin to Dock", "Close App").
+- **Window Title Bar Controls**: Added maximize/fullscreen and minimize buttons to floating `WindowFrame` components in windowed mode.
+
+## [1.0.0] - 2026-07-31
 
 ## [0.8.1] - 2026-07-31
 ### Development Milestone 8.1: System Integration

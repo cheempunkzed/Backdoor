@@ -18,6 +18,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.CropSquare
+import androidx.compose.material.icons.filled.Minimize
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -43,6 +45,8 @@ fun WindowFrame(
     title: String,
     icon: ImageVector,
     onClose: () -> Unit,
+    onFullscreen: (() -> Unit)? = null,
+    onMinimize: (() -> Unit)? = null,
     accentColor: Color = TechPurple,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
@@ -118,31 +122,60 @@ fun WindowFrame(
                         )
                     }
 
-                    // Right: PID Counter & Close Button
+                    // Right: Fullscreen, Minimize, Close
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "PID: 2049",
-                            color = TextMuted,
-                            fontSize = 10.sp,
-                            fontFamily = FontFamily.Monospace
-                        )
+                        if (onFullscreen != null) {
+                            Box(
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.White.copy(alpha = 0.08f))
+                                    .clickable { onFullscreen() },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CropSquare,
+                                    contentDescription = "Fullscreen",
+                                    tint = TextMuted,
+                                    modifier = Modifier.size(11.dp)
+                                )
+                            }
+                        }
+
+                        if (onMinimize != null) {
+                            Box(
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.White.copy(alpha = 0.08f))
+                                    .clickable { onMinimize() },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Minimize,
+                                    contentDescription = "Minimize",
+                                    tint = TextMuted,
+                                    modifier = Modifier.size(11.dp)
+                                )
+                            }
+                        }
 
                         Box(
                             modifier = Modifier
                                 .size(20.dp)
                                 .clip(CircleShape)
-                                .background(Color.White.copy(alpha = 0.08f))
+                                .background(NeonRed.copy(alpha = 0.2f))
                                 .clickable { onClose() },
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Close Window",
-                                tint = TextMuted,
-                                modifier = Modifier.size(12.dp)
+                                tint = NeonRed,
+                                modifier = Modifier.size(11.dp)
                             )
                         }
                     }

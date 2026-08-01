@@ -59,6 +59,9 @@ import com.example.ui.theme.TechPurple
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 
+import androidx.compose.material.icons.filled.CropSquare
+import androidx.compose.material.icons.filled.Fullscreen
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun BottomDock(
@@ -69,6 +72,8 @@ fun BottomDock(
     onPinApp: (OsApp) -> Unit,
     onUnpinApp: (OsApp) -> Unit,
     onCloseApp: (OsApp) -> Unit,
+    onOpenFullscreen: ((OsApp) -> Unit)? = null,
+    onOpenWindowed: ((OsApp) -> Unit)? = null,
     accentColor: Color = TechPurple,
     modifier: Modifier = Modifier
 ) {
@@ -139,6 +144,24 @@ fun BottomDock(
                 title = targetApp.appName,
                 accentColor = accentColor,
                 items = buildList {
+                    if (onOpenFullscreen != null) {
+                        add(
+                            ContextMenuItem(
+                                label = "Open Fullscreen",
+                                icon = Icons.Default.Fullscreen,
+                                onClick = { onOpenFullscreen(targetApp) }
+                            )
+                        )
+                    }
+                    if (onOpenWindowed != null) {
+                        add(
+                            ContextMenuItem(
+                                label = "Open Windowed",
+                                icon = Icons.Default.CropSquare,
+                                onClick = { onOpenWindowed(targetApp) }
+                            )
+                        )
+                    }
                     if (isPinned) {
                         add(
                             ContextMenuItem(

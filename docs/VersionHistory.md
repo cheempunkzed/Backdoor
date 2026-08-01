@@ -1,10 +1,13 @@
-## v1.0.0 - LIVING GRID (2026-07-31)
-- Implemented ShadowEconomyEngine governing dynamic markets and prices.
-- Added 6 new applications: Wallet, Contracts, Marketplace, Mail, News, Inventory.
-- Inter-app integration via SystemEventBus for contract payouts and purchases.
-- Supported multiple currencies (CR, ABC, CT, RT).
-
 # Version History
+
+## v1.1.0 - ABYSSOS HYBRID INTERFACE (2026-08-01)
+- Implemented Application Display Modes (`FULLSCREEN`, `WINDOWED`, `MINIMIZED`) across all OS applications.
+- Created Mobile Cyber Header with back navigation, mode switcher, and title indicators.
+- Extended `WindowManager` and `AbyssOSManager` to support dynamic display mode switching while preserving `AppState`.
+- Expanded `BottomDock` taskbar with active app indicators, background process status, and contextual menus ("Open Fullscreen", "Open Windowed", "Pin/Unpin", "Close App").
+- Added maximize/fullscreen and minimize controls to floating `WindowFrame` headers.
+
+## v1.0.0 - LIVING GRID (2026-07-31)
 
 ## v0.8.1 - SYSTEM INTEGRATION (2026-07-31)
 - Abstracted Application State into `AppState` objects tightly coupled to `OSProcess` allowing seamless backgrounding and restoring of windows.

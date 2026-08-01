@@ -32,7 +32,12 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CreateNewFolder
+import androidx.compose.material.icons.filled.CropSquare
+import androidx.compose.material.icons.filled.Fullscreen
+import androidx.compose.material.icons.filled.Minimize
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Refresh
@@ -60,6 +65,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.backdoor.core.ApplicationDisplayMode
 import com.example.backdoor.core.WindowState
 import com.example.backdoor.game.AbyssOSManager
 import com.example.backdoor.game.OsApp
@@ -83,6 +89,7 @@ import com.example.ui.theme.AbyssCard
 import com.example.ui.theme.AbyssSurface
 import com.example.ui.theme.AbyssSurfaceVariant
 import com.example.ui.theme.CyberCyan
+import com.example.ui.theme.NeonRed
 import com.example.ui.theme.TerminalGreen
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
@@ -180,15 +187,29 @@ fun DesktopScreen(
                     }
                 }
 
-                // Render Multi-Window Stack
-                openWindows.sortedBy { it.zIndex }.forEach { winState ->
-                    androidx.compose.runtime.key(winState.windowId) {
-                        DraggableWindowWrapper(
-                            winState = winState,
-                            osManager = osManager,
-                            accentColor = accentColor
-                        )
-                    }
+                // Render Windowed Stack & Fullscreen Apps
+                val activeFullscreenWin = openWindows
+                    .filter { !it.isMinimized && it.displayMode == ApplicationDisplayMode.FULLSCREEN }
+                    .maxByOrNull { it.zIndex }
+
+                if (activeFullscreenWin != null) {
+                    FullscreenAppContainer(
+                        winState = activeFullscreenWin,
+                        osManager = osManager,
+                        accentColor = accentColor
+                    )
+                } else {
+                    openWindows.filter { !it.isMinimized && it.displayMode == ApplicationDisplayMode.WINDOWED }
+                        .sortedBy { it.zIndex }
+                        .forEach { winState ->
+                            androidx.compose.runtime.key(winState.windowId) {
+                                DraggableWindowWrapper(
+                                    winState = winState,
+                                    osManager = osManager,
+                                    accentColor = accentColor
+                                )
+                            }
+                        }
                 }
             }
 
@@ -205,9 +226,11 @@ fun DesktopScreen(
                             osManager.openApp(app)
                         }
                     } else {
-                        osManager.openApp(app)
+                        osManager.openApp(app, ApplicationDisplayMode.FULLSCREEN)
                     }
                 },
+                onOpenFullscreen = { osManager.openApp(it, ApplicationDisplayMode.FULLSCREEN) },
+                onOpenWindowed = { osManager.openApp(it, ApplicationDisplayMode.WINDOWED) },
                 onPinApp = { osManager.pinAppToDock(it) },
                 onUnpinApp = { osManager.unpinAppFromDock(it) },
                 onCloseApp = { osManager.closeApp(it) },
@@ -256,9 +279,14 @@ fun DesktopScreen(
                 accentColor = accentColor,
                 items = listOf(
                     ContextMenuItem(
-                        label = "Open Application",
-                        icon = Icons.Default.OpenInNew,
-                        onClick = { osManager.openApp(targetApp) }
+                        label = "Open Fullscreen",
+                        icon = Icons.Default.Fullscreen,
+                        onClick = { osManager.openApp(targetApp, ApplicationDisplayMode.FULLSCREEN) }
+                    ),
+                    ContextMenuItem(
+                        label = "Open Windowed",
+                        icon = Icons.Default.CropSquare,
+                        onClick = { osManager.openApp(targetApp, ApplicationDisplayMode.WINDOWED) }
                     ),
                     if (isPinned) {
                         ContextMenuItem(
@@ -279,6 +307,155 @@ fun DesktopScreen(
 
         // CRT Screen Shader Overlay
         CrtOverlay(enabled = settings.crtEffectEnabled)
+    }
+}
+
+@Composable
+private fun FullscreenAppContainer(
+    winState: WindowState,
+    osManager: AbyssOSManager,
+    accentColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(AbyssBackground)
+    ) {
+        // Fullscreen Mobile Cyber Header
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(AbyssSurface)
+                .border(0.5.dp, accentColor.copy(alpha = 0.3f))
+                .padding(horizontal = 12.dp, vertical = 6.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(30.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(accentColor.copy(alpha = 0.15f))
+                            .clickable {
+                                osManager.windowManager.minimizeWindow(winState.app)
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = accentColor,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+
+                    Icon(
+                        imageVector = getAppIconVector(winState.app),
+                        contentDescription = winState.title,
+                        tint = accentColor,
+                        modifier = Modifier.size(18.dp)
+                    )
+
+                    Column {
+                        Text(
+                            text = winState.title.uppercase(),
+                            color = TextPrimary,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace
+                        )
+                        Text(
+                            text = "ABYSSOS // MOBILE HYBRID",
+                            color = TextMuted,
+                            fontSize = 8.sp,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    // Switch to Windowed
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(AbyssCard)
+                            .border(0.5.dp, TextMuted.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
+                            .clickable {
+                                osManager.windowManager.setDisplayMode(winState.app, ApplicationDisplayMode.WINDOWED)
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CropSquare,
+                            contentDescription = "Switch to Windowed",
+                            tint = TextPrimary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+
+                    // Minimize
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(AbyssCard)
+                            .border(0.5.dp, TextMuted.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
+                            .clickable {
+                                osManager.windowManager.minimizeWindow(winState.app)
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Minimize,
+                            contentDescription = "Minimize",
+                            tint = TextPrimary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+
+                    // Close
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(NeonRed.copy(alpha = 0.2f))
+                            .border(0.5.dp, NeonRed.copy(alpha = 0.5f), RoundedCornerShape(6.dp))
+                            .clickable {
+                                osManager.closeApp(winState.app)
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close",
+                            tint = NeonRed,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        // Main App Content
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+        ) {
+            RenderAppContent(app = winState.app, osManager = osManager, accentColor = accentColor)
+        }
     }
 }
 
@@ -312,25 +489,36 @@ private fun DraggableWindowWrapper(
             title = winState.title,
             icon = getAppIconVector(winState.app),
             onClose = { osManager.closeApp(winState.app) },
+            onFullscreen = { osManager.windowManager.setDisplayMode(winState.app, ApplicationDisplayMode.FULLSCREEN) },
+            onMinimize = { osManager.windowManager.minimizeWindow(winState.app) },
             accentColor = if (winState.isFocused) accentColor else TextMuted
         ) {
-            when (winState.app) {
-                OsApp.TERMINAL -> TerminalApp(osManager = osManager, accentColor = accentColor)
-                OsApp.FILES -> FilesApp(osManager = osManager, accentColor = accentColor)
-                OsApp.SETTINGS -> SettingsApp(osManager = osManager, accentColor = accentColor)
-                OsApp.SYSTEM_MONITOR -> SystemMonitorApp(osManager = osManager, accentColor = accentColor)
-                OsApp.LOGS -> LogsApp(osManager = osManager, accentColor = accentColor)
-                OsApp.DARKNET -> DarkNetApp(osManager = osManager, accentColor = accentColor)
-                OsApp.BROWSER -> BrowserApp(osManager = osManager, accentColor = accentColor)
-                OsApp.NETWORK -> NetworkApp(osManager = osManager, accentColor = accentColor)
-                OsApp.WALLET -> com.example.backdoor.ui.apps.economy.WalletApp(osManager = osManager, accentColor = accentColor)
-                OsApp.CONTRACTS -> com.example.backdoor.ui.apps.economy.ContractsApp(osManager = osManager, accentColor = accentColor)
-                OsApp.MARKETPLACE -> com.example.backdoor.ui.apps.economy.MarketplaceApp(osManager = osManager, accentColor = accentColor)
-                OsApp.MAIL -> com.example.backdoor.ui.apps.economy.MailApp(osManager = osManager, accentColor = accentColor)
-                OsApp.NEWS -> com.example.backdoor.ui.apps.economy.NewsApp(osManager = osManager, accentColor = accentColor)
-                OsApp.INVENTORY -> com.example.backdoor.ui.apps.economy.InventoryApp(osManager = osManager, accentColor = accentColor)
-            }
+            RenderAppContent(app = winState.app, osManager = osManager, accentColor = accentColor)
         }
+    }
+}
+
+@Composable
+private fun RenderAppContent(
+    app: OsApp,
+    osManager: AbyssOSManager,
+    accentColor: Color
+) {
+    when (app) {
+        OsApp.TERMINAL -> TerminalApp(osManager = osManager, accentColor = accentColor)
+        OsApp.FILES -> FilesApp(osManager = osManager, accentColor = accentColor)
+        OsApp.SETTINGS -> SettingsApp(osManager = osManager, accentColor = accentColor)
+        OsApp.SYSTEM_MONITOR -> SystemMonitorApp(osManager = osManager, accentColor = accentColor)
+        OsApp.LOGS -> LogsApp(osManager = osManager, accentColor = accentColor)
+        OsApp.DARKNET -> DarkNetApp(osManager = osManager, accentColor = accentColor)
+        OsApp.BROWSER -> BrowserApp(osManager = osManager, accentColor = accentColor)
+        OsApp.NETWORK -> NetworkApp(osManager = osManager, accentColor = accentColor)
+        OsApp.WALLET -> com.example.backdoor.ui.apps.economy.WalletApp(osManager = osManager, accentColor = accentColor)
+        OsApp.CONTRACTS -> com.example.backdoor.ui.apps.economy.ContractsApp(osManager = osManager, accentColor = accentColor)
+        OsApp.MARKETPLACE -> com.example.backdoor.ui.apps.economy.MarketplaceApp(osManager = osManager, accentColor = accentColor)
+        OsApp.MAIL -> com.example.backdoor.ui.apps.economy.MailApp(osManager = osManager, accentColor = accentColor)
+        OsApp.NEWS -> com.example.backdoor.ui.apps.economy.NewsApp(osManager = osManager, accentColor = accentColor)
+        OsApp.INVENTORY -> com.example.backdoor.ui.apps.economy.InventoryApp(osManager = osManager, accentColor = accentColor)
     }
 }
 

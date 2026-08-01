@@ -132,7 +132,7 @@ class AbyssOSManager(
         corporateRepository.registerWithNetworkEngine(networkEngine)
         securityFramework.updateVfs(vfs)
         securityFramework.darkNetHook = darknetEngine
-        addSystemLog("KERNEL", "AbyssOS 1.0.0 Living Grid System initialized.", LogLevel.INFO)
+        addSystemLog("KERNEL", "AbyssOS 1.1.0 Hybrid System initialized.", LogLevel.INFO)
         startStatusTicker()
 
         scope.launch {
@@ -301,10 +301,13 @@ class AbyssOSManager(
         }
     }
 
-    fun openApp(app: OsApp) {
-        windowManager.openOrFocusApp(app)
+    fun openApp(
+        app: OsApp,
+        mode: com.example.backdoor.core.ApplicationDisplayMode = com.example.backdoor.core.ApplicationDisplayMode.FULLSCREEN
+    ) {
+        windowManager.openOrFocusApp(app, mode)
         _activeApp.value = app
-        addSystemLog("UI", "Opened application: ${app.appName}", LogLevel.INFO)
+        addSystemLog("UI", "Opened application: ${app.appName} [${mode.name}]", LogLevel.INFO)
     }
 
     fun closeActiveApp() {
@@ -329,9 +332,9 @@ class AbyssOSManager(
         scope.launch {
             val lines = listOf(
                 "AbyssOS Boot Sequence",
-                "Version 0.6.0 (Codename: CORPORATE GRID)",
+                "Version 1.1.0 (Codename: ABYSSOS HYBRID INTERFACE)",
                 "",
-                "Initializing AbyssNet Kernel & Corporate Grid...",
+                "Initializing AbyssNet Hybrid Subsystem Kernel...",
                 "Mounting Virtual File System (AbyssFS)...",
                 "Populating Corporate Organizations & Server Matrix...",
                 "Configuring Domain Name Resolver (DNS)...",

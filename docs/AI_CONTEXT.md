@@ -1,7 +1,7 @@
 # AI_CONTEXT.md
 # Backdoor Development Context
-# Last Updated: Version 1.0.0 (Living Grid)
-# Next Target: Version 1.0.0 (Living Grid)
+# Last Updated: Version 1.1.0 (AbyssOS Hybrid Interface)
+# Next Target: Version 1.2.0 (Campaign & Narrative)
 
 ==================================================
 PROJECT OVERVIEW
