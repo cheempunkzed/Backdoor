@@ -42,6 +42,18 @@ interface SaveManager {
 
     suspend fun getLivingWorldJson(): String?
     suspend fun saveLivingWorldJson(json: String): Boolean
+
+    suspend fun getBrowserBookmarksJson(): String?
+    suspend fun saveBrowserBookmarksJson(json: String): Boolean
+
+    suspend fun getBrowserTabsJson(): String?
+    suspend fun saveBrowserTabsJson(json: String): Boolean
+
+    suspend fun getBrowserHistoryJson(): String?
+    suspend fun saveBrowserHistoryJson(json: String): Boolean
+
+    suspend fun getBrowserSettingsJson(): String?
+    suspend fun saveBrowserSettingsJson(json: String): Boolean
 }
 
 class MemorySaveManager(
@@ -59,6 +71,10 @@ class MemorySaveManager(
     private var storedDarknetJson: String? = null
     private var storedEconomyJson: String? = null
     private var storedLivingWorldJson: String? = null
+    private var storedBrowserBookmarksJson: String? = null
+    private var storedBrowserTabsJson: String? = null
+    private var storedBrowserHistoryJson: String? = null
+    private var storedBrowserSettingsJson: String? = null
 
     private val _currentSave = MutableStateFlow<SaveSlotEntity?>(
         SaveSlotEntity(
@@ -217,6 +233,42 @@ class MemorySaveManager(
 
     override suspend fun saveLivingWorldJson(json: String): Boolean {
         storedLivingWorldJson = json
+        return true
+    }
+
+    override suspend fun getBrowserBookmarksJson(): String? {
+        return storedBrowserBookmarksJson
+    }
+
+    override suspend fun saveBrowserBookmarksJson(json: String): Boolean {
+        storedBrowserBookmarksJson = json
+        return true
+    }
+
+    override suspend fun getBrowserTabsJson(): String? {
+        return storedBrowserTabsJson
+    }
+
+    override suspend fun saveBrowserTabsJson(json: String): Boolean {
+        storedBrowserTabsJson = json
+        return true
+    }
+
+    override suspend fun getBrowserHistoryJson(): String? {
+        return storedBrowserHistoryJson
+    }
+
+    override suspend fun saveBrowserHistoryJson(json: String): Boolean {
+        storedBrowserHistoryJson = json
+        return true
+    }
+
+    override suspend fun getBrowserSettingsJson(): String? {
+        return storedBrowserSettingsJson
+    }
+
+    override suspend fun saveBrowserSettingsJson(json: String): Boolean {
+        storedBrowserSettingsJson = json
         return true
     }
 }
