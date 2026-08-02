@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -361,7 +362,7 @@ fun NetworkApp(
     }
 }
 
-// 1. LOCAL TOPOLOGY MAP VIEW (Mode 0)
+// 1. LOCAL TOPOLOGY MAP VIEW (Mode 0) - SCREEN 2 NETWORK MAP
 @Composable
 private fun LocalTopologyMapView(
     osManager: AbyssOSManager,
@@ -370,31 +371,108 @@ private fun LocalTopologyMapView(
     onSelectNode: (String) -> Unit,
     accentColor: Color
 ) {
-    val selectedNode = nodes.find { it.id == selectedNodeId } ?: nodes.firstOrNull()
+    var subnetScope by remember { mutableStateOf("LOCAL") } // "LOCAL" vs "WAN"
+    var statusFilter by remember { mutableStateOf("ALL") } // "ALL", "ONLINE", "OFFLINE"
 
-    Row(modifier = Modifier.fillMaxSize()) {
-        Box(
+    val filteredNodes = nodes.filter { node ->
+        when (statusFilter) {
+            "ONLINE" -> node.status == NodeStatus.ONLINE
+            "OFFLINE" -> node.status == NodeStatus.OFFLINE
+            else -> true
+        }
+    }
+
+    val selectedNode = filteredNodes.find { it.id == selectedNodeId }
+        ?: nodes.find { it.id == selectedNodeId }
+        ?: filteredNodes.firstOrNull()
+        ?: nodes.firstOrNull()
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        // FILTER CHIPS ROW: [LOCAL SUBNET] [TARGET CORPORATE WAN] | [ALL] [ONLINE] [OFFLINE]
+        Row(
             modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight()
-                .clip(RoundedCornerShape(8.dp))
-                .background(AbyssCard)
-                .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
-                .padding(10.dp)
+                .fillMaxWidth()
+                .padding(bottom = 6.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
+            // Left filters: Subnet Scope
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                listOf("LOCAL SUBNET" to "LOCAL", "TARGET CORPORATE WAN" to "WAN").forEach { (label, scope) ->
+                    val isSelected = subnetScope == scope
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(if (isSelected) accentColor.copy(alpha = 0.2f) else AbyssSurface)
+                            .border(
+                                width = if (isSelected) 1.dp else 0.5.dp,
+                                color = if (isSelected) accentColor else Color.White.copy(alpha = 0.08f),
+                                shape = RoundedCornerShape(4.dp)
+                            )
+                            .clickable { subnetScope = scope }
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = label,
+                            color = if (isSelected) accentColor else TextMuted,
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
+                }
+            }
+
+            // Right filters: Status Filters
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                listOf("ALL", "ONLINE", "OFFLINE").forEach { filter ->
+                    val isSelected = statusFilter == filter
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(if (isSelected) accentColor.copy(alpha = 0.2f) else AbyssSurface)
+                            .border(
+                                width = if (isSelected) 1.dp else 0.5.dp,
+                                color = if (isSelected) accentColor else Color.White.copy(alpha = 0.08f),
+                                shape = RoundedCornerShape(4.dp)
+                            )
+                            .clickable { statusFilter = filter }
+                            .padding(horizontal = 6.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = filter,
+                            color = if (isSelected) accentColor else TextMuted,
+                            fontSize = 8.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
+                }
+            }
+        }
+
+        // TOP PANEL: LOCAL SUBNET MAP (192.168.1.0/24)
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .border(0.5.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(8.dp)),
+            colors = CardDefaults.cardColors(containerColor = AbyssCard)
+        ) {
+            Column(modifier = Modifier.padding(8.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "LOCAL SUBNET MAP (192.168.1.0/24)",
-                        color = TextMuted,
+                        text = if (subnetScope == "LOCAL") "TOP PANEL: LOCAL SUBNET MAP (192.168.1.0/24)" else "TOP PANEL: TARGET CORPORATE WAN (10.0.0.0/16)",
+                        color = accentColor,
                         fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
                         fontFamily = FontFamily.Monospace
                     )
-                    
+
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(4.dp))
@@ -417,69 +495,240 @@ private fun LocalTopologyMapView(
                         }
                     }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
+
+                Spacer(modifier = Modifier.height(6.dp))
 
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    items(nodes) { node ->
+                    items(filteredNodes) { node ->
                         val isSelected = selectedNode?.id == node.id
-                        val icon = getNodeIcon(node.nodeType)
-                        val statusColor = when (node.status) {
-                            NodeStatus.ONLINE -> StatusConnected
-                            NodeStatus.OFFLINE -> NeonRed
-                            NodeStatus.DEGRADED -> AmberAlert
-                        }
 
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(6.dp))
+                                .clip(RoundedCornerShape(4.dp))
                                 .background(if (isSelected) accentColor.copy(alpha = 0.12f) else AbyssSurface)
                                 .border(
                                     width = if (isSelected) 1.dp else 0.5.dp,
                                     color = if (isSelected) accentColor else Color.White.copy(alpha = 0.04f),
-                                    shape = RoundedCornerShape(6.dp)
+                                    shape = RoundedCornerShape(4.dp)
                                 )
                                 .clickable { onSelectNode(node.id) }
-                                .padding(8.dp),
+                                .padding(horizontal = 8.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = icon,
-                                    contentDescription = node.hostname,
-                                    tint = statusColor,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Column {
-                                    Text(node.hostname, color = TextPrimary, fontSize = 11.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
-                                    Text(node.ip, color = TextMuted, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                // Square checkbox indicator []
+                                Box(
+                                    modifier = Modifier
+                                        .size(13.dp)
+                                        .border(
+                                            width = 1.dp,
+                                            color = if (isSelected) accentColor else TextMuted.copy(alpha = 0.4f),
+                                            shape = RoundedCornerShape(2.dp)
+                                        )
+                                        .background(if (isSelected) accentColor.copy(alpha = 0.25f) else Color.Transparent),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (isSelected) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(5.dp)
+                                                .background(accentColor, RoundedCornerShape(1.dp))
+                                        )
+                                    }
                                 }
+
+                                Spacer(modifier = Modifier.width(8.dp))
+
+                                // Hostname
+                                Text(
+                                    text = node.hostname,
+                                    color = TextPrimary,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = FontFamily.Monospace,
+                                    modifier = Modifier.weight(1f)
+                                )
+
+                                // IP Address
+                                Text(
+                                    text = node.ip,
+                                    color = CyberCyan,
+                                    fontSize = 10.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    modifier = Modifier.padding(horizontal = 8.dp)
+                                )
                             }
-                            Text(node.nodeType.displayName, color = TechPurple, fontSize = 8.sp, fontFamily = FontFamily.Monospace)
+
+                            // Type Tag [ Personal ], [ Router ], etc.
+                            Box(
+                                modifier = Modifier
+                                    .border(0.5.dp, TechPurple.copy(alpha = 0.6f), RoundedCornerShape(3.dp))
+                                    .background(TechPurple.copy(alpha = 0.1f))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = "[ ${node.nodeType.displayName} ]",
+                                    color = TechPurple,
+                                    fontSize = 8.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = FontFamily.Monospace
+                                )
+                            }
                         }
                     }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.width(6.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
-        Box(
+        // BOTTOM PANEL: LOCAL NODE DETAILS
+        Card(
             modifier = Modifier
-                .width(220.dp)
-                .fillMaxHeight()
-                .clip(RoundedCornerShape(8.dp))
-                .background(AbyssCard)
-                .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
-                .padding(8.dp)
+                .fillMaxWidth()
+                .border(1.dp, accentColor.copy(alpha = 0.35f), RoundedCornerShape(8.dp)),
+            colors = CardDefaults.cardColors(containerColor = AbyssCard)
         ) {
-            NodeDetailInspector(node = selectedNode, accentColor = accentColor)
+            if (selectedNode != null) {
+                Column(modifier = Modifier.padding(10.dp)) {
+                    Text(
+                        text = "BOTTOM PANEL: LOCAL NODE DETAILS",
+                        color = accentColor,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // 2-Column Property Grid matching ASCII spec
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            NodeDetailPair("Node Name:", selectedNode.hostname)
+                            NodeDetailPair("IP Address:", selectedNode.ip)
+                            NodeDetailPair("Node Type:", selectedNode.nodeType.displayName)
+                            NodeDetailPair("Latency:", "${selectedNode.latencyMs} ms")
+                        }
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            NodeDetailPair("MAC Address:", selectedNode.mac)
+                            NodeDetailPair("Owner ID:", selectedNode.ownerId)
+                            NodeDetailPair("Security Tier:", "Tier ${selectedNode.securityLevel}")
+                            NodeDetailPair(
+                                label = "Status:",
+                                value = if (selectedNode.status == NodeStatus.ONLINE) "ACTIVE" else selectedNode.status.name,
+                                statusColor = if (selectedNode.status == NodeStatus.ONLINE) StatusConnected else NeonRed
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+                    HorizontalDivider(color = Color.White.copy(alpha = 0.1f), thickness = 0.5.dp)
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    // ACTIVE SERVICES (Count)
+                    Text(
+                        text = "ACTIVE SERVICES (${selectedNode.services.size}):",
+                        color = TechPurple,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    if (selectedNode.services.isEmpty()) {
+                        Text(
+                            text = "  • NO ACTIVE SERVICES DETECTED",
+                            color = TextMuted,
+                            fontSize = 9.sp,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    } else {
+                        selectedNode.services.forEach { service ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 1.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "  • ${service.name.uppercase()} :${service.port}",
+                                    color = TextPrimary,
+                                    fontSize = 9.sp,
+                                    fontFamily = FontFamily.Monospace
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .border(0.5.dp, if (service.isOpen) StatusConnected else NeonRed, RoundedCornerShape(2.dp))
+                                        .background(if (service.isOpen) StatusConnected.copy(alpha = 0.15f) else NeonRed.copy(alpha = 0.15f))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = if (service.isOpen) "[ OPEN / ACTIVE ]" else "[ CLOSED ]",
+                                        color = if (service.isOpen) StatusConnected else NeonRed,
+                                        fontSize = 8.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        fontFamily = FontFamily.Monospace
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "NO LOCAL NODE SELECTED",
+                        color = TextMuted,
+                        fontSize = 10.sp,
+                        fontFamily = FontFamily.Monospace
+                    )
+                }
+            }
         }
+    }
+}
+
+// Global helper: Node Detail Pair for 2-column layout
+@Composable
+private fun NodeDetailPair(
+    label: String,
+    value: String,
+    statusColor: Color? = null
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = label,
+            color = TextMuted,
+            fontSize = 9.sp,
+            fontFamily = FontFamily.Monospace
+        )
+        Text(
+            text = value,
+            color = statusColor ?: TextPrimary,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Bold,
+            fontFamily = FontFamily.Monospace
+        )
     }
 }
 
@@ -719,6 +968,7 @@ private fun CorporateGridTreeView(
 @Composable
 private fun OrganizationDirectoryView(
     orgs: List<Organization>,
+    selectedOrgId: String?,
     onSelectOrg: (String) -> Unit,
     accentColor: Color
 ) {
@@ -735,55 +985,91 @@ private fun OrganizationDirectoryView(
                 text = "GLOBAL CORPORATE ASSETS DIRECTORY MAP",
                 color = TextMuted,
                 fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
                 fontFamily = FontFamily.Monospace
             )
             Spacer(modifier = Modifier.height(6.dp))
 
             LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 160.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                columns = GridCells.Fixed(2),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
-                items(orgs) { org ->
+                itemsIndexed(orgs) { index, org ->
+                    val isSelected = org.id == selectedOrgId
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .border(0.5.dp, accentColor.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
+                            .border(
+                                width = if (isSelected) 1.5.dp else 0.5.dp,
+                                color = if (isSelected) accentColor else Color.White.copy(alpha = 0.12f),
+                                shape = RoundedCornerShape(6.dp)
+                            )
                             .clickable { onSelectOrg(org.id) },
-                        colors = CardDefaults.cardColors(containerColor = AbyssSurface)
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (isSelected) accentColor.copy(alpha = 0.12f) else AbyssSurface
+                        )
                     ) {
                         Column(modifier = Modifier.padding(8.dp)) {
-                            Text(
-                                text = org.code,
-                                color = accentColor,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                fontFamily = FontFamily.Monospace
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
+                            // Top line: Ordinal Index & Corp Code
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = String.format("#%02d", index + 1),
+                                    color = TextMuted,
+                                    fontSize = 9.sp,
+                                    fontFamily = FontFamily.Monospace
+                                )
+                                Text(
+                                    text = "[${org.code}]",
+                                    color = accentColor,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = FontFamily.Monospace
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(3.dp))
+                            // Name of Corporation
                             Text(
                                 text = org.name,
                                 color = TextPrimary,
                                 fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
+                                fontWeight = FontWeight.Bold,
                                 fontFamily = FontFamily.Monospace,
                                 maxLines = 1
                             )
+                            // URL / Domain address
                             Text(
                                 text = org.domain,
                                 color = CyberCyan,
                                 fontSize = 9.sp,
-                                fontFamily = FontFamily.Monospace
+                                fontFamily = FontFamily.Monospace,
+                                maxLines = 1
                             )
                             
                             Spacer(modifier = Modifier.height(6.dp))
+                            // Bottom line: Sec level & Nodes count
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("SEC LEVEL ${org.securityLevel}", color = TechPurple, fontSize = 8.sp, fontFamily = FontFamily.Monospace)
-                                Text("${org.servers.size} NODES", color = StatusConnected, fontSize = 8.sp, fontFamily = FontFamily.Monospace)
+                                Text(
+                                    text = "Sec. level ${org.securityLevel}",
+                                    color = TechPurple,
+                                    fontSize = 8.sp,
+                                    fontFamily = FontFamily.Monospace
+                                )
+                                Text(
+                                    text = "${org.servers.size} nodes",
+                                    color = StatusConnected,
+                                    fontSize = 8.sp,
+                                    fontFamily = FontFamily.Monospace
+                                )
                             }
                         }
                     }
@@ -926,62 +1212,108 @@ private fun CustomNetworkTopologyView(
     }
 }
 
-// 5. INFRASTRUCTURE OVERVIEW VIEW (Mode 4)
+// 5. INFRASTRUCTURE OVERVIEW VIEW (Mode 4) - SCREEN 4 INFRASTRUCTURE
 @Composable
 private fun InfrastructureOverviewView(
     osManager: AbyssOSManager,
     accentColor: Color
 ) {
     val ifconfig = osManager.networkEngine.getIfconfig()
-    val netstat = osManager.networkEngine.getNetstat()
 
-    Row(modifier = Modifier.fillMaxSize()) {
-        Box(
+    Column(modifier = Modifier.fillMaxSize()) {
+        // TOP PANEL: NETWORK INTERFACES CONFIGURATION
+        Card(
             modifier = Modifier
+                .fillMaxWidth()
                 .weight(1f)
-                .fillMaxHeight()
-                .clip(RoundedCornerShape(8.dp))
-                .background(AbyssCard)
-                .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
-                .padding(10.dp)
+                .border(0.5.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(8.dp)),
+            colors = CardDefaults.cardColors(containerColor = AbyssCard)
         ) {
-            Column {
-                Text("NETWORK INTERFACES CONFIGURATION", color = accentColor, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
-                Spacer(modifier = Modifier.height(4.dp))
-                LazyColumn {
-                    items(ifconfig) { line ->
-                        Text(line, color = TextPrimary, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
-                    }
-                }
+            Column(modifier = Modifier.padding(10.dp)) {
+                Text(
+                    text = "TOP PANEL: NETWORK INTERFACES CONFIGURATION",
+                    color = accentColor,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace
+                )
+                Spacer(modifier = Modifier.height(6.dp))
 
-                Spacer(modifier = Modifier.height(8.dp))
-                HorizontalDivider(color = Color.White.copy(alpha = 0.08f))
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text("ACTIVE SOCKETS (NETSTAT)", color = CyberCyan, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
-                Spacer(modifier = Modifier.height(4.dp))
-                LazyColumn {
-                    items(netstat) { line ->
-                        Text(line, color = TextMuted, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    // Parse or display ifconfig interface blocks neatly
+                    val formattedBlocks = parseIfconfigBlocks(ifconfig)
+                    items(formattedBlocks) { blockText ->
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(AbyssSurface)
+                                .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(4.dp))
+                                .padding(8.dp)
+                        ) {
+                            Text(
+                                text = blockText,
+                                color = TextPrimary,
+                                fontSize = 9.sp,
+                                fontFamily = FontFamily.Monospace,
+                                lineHeight = 13.sp
+                            )
+                        }
                     }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.width(6.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
-        Box(
+        // BOTTOM PANEL: OFFENSIVE SECURITY ENGINE
+        Card(
             modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight()
-                .clip(RoundedCornerShape(8.dp))
-                .background(AbyssCard)
-                .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
-                .padding(10.dp)
+                .fillMaxWidth()
+                .weight(1.1f)
+                .border(1.dp, accentColor.copy(alpha = 0.35f), RoundedCornerShape(8.dp)),
+            colors = CardDefaults.cardColors(containerColor = AbyssCard)
         ) {
-            SecurityTabView(osManager = osManager, accentColor = accentColor)
+            Box(modifier = Modifier.padding(10.dp)) {
+                SecurityTabView(osManager = osManager, accentColor = accentColor)
+            }
         }
     }
+}
+
+// Helper to chunk lines of ifconfig output into interface blocks
+private fun parseIfconfigBlocks(ifconfigLines: List<String>): List<String> {
+    if (ifconfigLines.isEmpty()) {
+        return listOf(
+            "eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST> mtu 1500\n      inet 192.168.1.100  netmask 255.255.255.0  broadcast 192.168.1.255\n      ether 00:1A:2B:3C:4D:5E  txqueuelen 1000 (Ethernet)\n      RX packets 14209 (9.8 MB)  |  TX packets 11042 (1.4 MB)",
+            "wlan0: flags=4099<UP,BROADCAST,MULTICAST> mtu 1500\n       inet 10.0.0.42  netmask 255.255.255.0  broadcast 10.0.0.255\n       ether 00:1A:2B:3C:4D:5F  txqueuelen 1000 (Wi-Fi)\n       RX packets 0 (0.0 B)  |  TX packets 0 (0.0 B)",
+            "lo: flags=73<UP,LOOPBACK,RUNNING> mtu 65536\n    inet 127.0.0.1  netmask 255.0.0.0"
+        )
+    }
+
+    val blocks = mutableListOf<String>()
+    var currentBlock = StringBuilder()
+
+    for (line in ifconfigLines) {
+        if (line.isBlank() || (line.firstOrNull()?.isLetterOrDigit() == true && !line.startsWith(" ") && currentBlock.isNotEmpty())) {
+            if (currentBlock.isNotBlank()) {
+                blocks.add(currentBlock.toString().trimEnd())
+                currentBlock = StringBuilder()
+            }
+        }
+        if (currentBlock.isNotEmpty()) {
+            currentBlock.append("\n")
+        }
+        currentBlock.append(line)
+    }
+    if (currentBlock.isNotBlank()) {
+        blocks.add(currentBlock.toString().trimEnd())
+    }
+
+    return if (blocks.isEmpty()) ifconfigLines else blocks
 }
 
 // 6. HELPER COMPONENT: Security Tab (Inside Infrastructure Overview)
@@ -994,101 +1326,145 @@ private fun SecurityTabView(
     val modules = framework.getRegisteredModules()
     val orgs by osManager.corporateRepository.organizations.collectAsState()
     val tasks by framework.activeTasks.collectAsState()
-    val reports by framework.completedReports.collectAsState()
 
     var targetInput by remember { mutableStateOf("aegis-corp.com") }
     var selectedModuleId by remember { mutableStateOf(modules.firstOrNull()?.id ?: "mod-service-discovery") }
 
     val activeTask = tasks.firstOrNull { it.target == targetInput || it.status == com.example.backdoor.security.framework.TaskStatus.RUNNING }
-    val latestReport = reports.firstOrNull { it.target == targetInput } ?: reports.firstOrNull()
 
     Column(modifier = Modifier.fillMaxSize()) {
         Text(
-            text = "OFFENSIVE SECURITY ENGINE",
+            text = "BOTTOM PANEL: OFFENSIVE SECURITY ENGINE",
             color = accentColor,
-            fontSize = 11.sp,
+            fontSize = 10.sp,
             fontWeight = FontWeight.Bold,
             fontFamily = FontFamily.Monospace
         )
         Spacer(modifier = Modifier.height(6.dp))
 
-        // Target Select Row
+        // TARGET & EXECUTE AUDIT ROW
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(6.dp))
-                .background(AbyssSurface)
-                .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(6.dp))
-                .padding(6.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Text("TARGET: ", color = accentColor, fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
-            BasicTextField(
-                value = targetInput,
-                onValueChange = { targetInput = it },
-                singleLine = true,
-                textStyle = TextStyle(color = TextPrimary, fontSize = 10.sp, fontFamily = FontFamily.Monospace),
-                modifier = Modifier.weight(1f)
-            )
+            // Target input box
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(AbyssSurface)
+                    .border(0.5.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(4.dp))
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "TARGET: ",
+                    color = accentColor,
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace
+                )
+                BasicTextField(
+                    value = targetInput,
+                    onValueChange = { targetInput = it },
+                    singleLine = true,
+                    textStyle = TextStyle(color = TextPrimary, fontSize = 9.sp, fontFamily = FontFamily.Monospace),
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            // EXECUTE AUDIT Button
+            val isRunning = activeTask != null
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(if (isRunning) NeonRed.copy(alpha = 0.2f) else accentColor.copy(alpha = 0.2f))
+                    .border(1.dp, if (isRunning) NeonRed else accentColor, RoundedCornerShape(4.dp))
+                    .clickable(enabled = !isRunning) {
+                        framework.runTask(
+                            moduleId = selectedModuleId,
+                            target = targetInput,
+                            osManager = osManager
+                        )
+                        osManager.showNotification(
+                            title = "AUDIT STARTED",
+                            message = "Launching module on target $targetInput...",
+                            level = NotificationLevel.INFO
+                        )
+                    }
+                    .padding(horizontal = 10.dp, vertical = 7.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = if (isRunning) "[ SCANNING... ]" else "[ EXECUTE AUDIT ]",
+                    color = if (isRunning) NeonRed else accentColor,
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(6.dp))
-
-        // Trigger scan
-        val isRunning = activeTask != null
-        val scope = rememberCoroutineScope()
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(6.dp))
-                .background(if (isRunning) NeonRed.copy(alpha = 0.2f) else accentColor.copy(alpha = 0.2f))
-                .border(1.dp, if (isRunning) NeonRed else accentColor, RoundedCornerShape(6.dp))
-                .clickable(enabled = !isRunning) {
-                    val targetOrg = orgs.find { it.domain == targetInput }
-                    val parameters = mapOf("target" to targetInput, "depth" to "3")
-                    framework.runTask(
-                        moduleId = selectedModuleId,
-                        target = targetInput,
-                        osManager = osManager
-                    )
-                    osManager.showNotification(
-                        title = "AUDIT STARTED",
-                        message = "Launching module on target $targetInput...",
-                        level = NotificationLevel.INFO
-                    )
-                }
-                .padding(vertical = 6.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = if (isRunning) "SCANNING TARGET ASSETS..." else "EXECUTE MODULE AUDIT",
-                color = if (isRunning) NeonRed else accentColor,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = FontFamily.Monospace
-            )
-        }
-
+        HorizontalDivider(color = Color.White.copy(alpha = 0.1f), thickness = 0.5.dp)
         Spacer(modifier = Modifier.height(6.dp))
 
-        // Modules
-        Text("SECURITY MODULES", color = TextMuted, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
-        Spacer(modifier = Modifier.height(3.dp))
-        LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        // SECURITY MODULES list
+        Text(
+            text = "SECURITY MODULES:",
+            color = TechPurple,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Bold,
+            fontFamily = FontFamily.Monospace
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+
+        LazyColumn(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
             items(modules) { mod ->
                 val isSelected = mod.id == selectedModuleId
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(4.dp))
-                        .background(if (isSelected) accentColor.copy(alpha = 0.1f) else AbyssSurface)
-                        .border(0.5.dp, if (isSelected) accentColor else Color.Transparent, RoundedCornerShape(4.dp))
+                        .background(if (isSelected) accentColor.copy(alpha = 0.12f) else AbyssSurface)
+                        .border(
+                            width = if (isSelected) 1.dp else 0.5.dp,
+                            color = if (isSelected) accentColor else Color.White.copy(alpha = 0.06f),
+                            shape = RoundedCornerShape(4.dp)
+                        )
                         .clickable { selectedModuleId = mod.id }
-                        .padding(6.dp)
+                        .padding(horizontal = 8.dp, vertical = 6.dp)
                 ) {
-                    Column {
-                        Text(mod.name, color = if (isSelected) accentColor else TextPrimary, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
-                        Text(mod.description, color = TextMuted, fontSize = 8.sp, fontFamily = FontFamily.Monospace, maxLines = 1)
+                    Row(verticalAlignment = Alignment.Top) {
+                        // Bullet indicator [•] or [ ]
+                        Text(
+                            text = if (isSelected) "[•] " else "[ ] ",
+                            color = if (isSelected) accentColor else TextMuted,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = mod.name,
+                                color = if (isSelected) accentColor else TextPrimary,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Monospace
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = mod.description,
+                                color = TextMuted,
+                                fontSize = 8.sp,
+                                fontFamily = FontFamily.Monospace,
+                                maxLines = 2
+                            )
+                        }
                     }
                 }
             }
@@ -1593,6 +1969,7 @@ private fun CorporateGridModeView(
             if (viewType == "GRID") {
                 OrganizationDirectoryView(
                     orgs = sortedOrgs,
+                    selectedOrgId = selectedOrg?.id,
                     onSelectOrg = onSelectOrg,
                     accentColor = accentColor
                 )
@@ -1610,69 +1987,129 @@ private fun CorporateGridModeView(
 
         Spacer(modifier = Modifier.height(6.dp))
 
-        // Compact Profile Card for selected organization (No permanent secondary panel!)
+        // Selected Corporation Bottom Window ("ОКНО ВЫБРАННОЙ КОРПОРАЦИИ")
         if (selectedOrg != null) {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(0.5.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(8.dp)),
+                    .border(1.dp, accentColor.copy(alpha = 0.4f), RoundedCornerShape(8.dp)),
                 colors = CardDefaults.cardColors(containerColor = AbyssCard)
             ) {
                 Column(modifier = Modifier.padding(10.dp)) {
+                    Text(
+                        text = "ОКНО ВЫБРАННОЙ КОРПОРАЦИИ",
+                        color = accentColor,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    HorizontalDivider(color = Color.White.copy(alpha = 0.08f), thickness = 0.5.dp)
+                    Spacer(modifier = Modifier.height(6.dp))
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column {
+                        // Left side: Corporate Information
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(end = 12.dp)
+                        ) {
                             Text(
                                 text = selectedOrg.name.uppercase(),
                                 color = TextPrimary,
-                                fontSize = 12.sp,
+                                fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 fontFamily = FontFamily.Monospace
                             )
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "DOMAIN: ${selectedOrg.domain} | SEC LEVEL: ${selectedOrg.securityLevel}",
+                                text = "DOMAIN: ${selectedOrg.domain}",
                                 color = CyberCyan,
-                                fontSize = 9.sp,
+                                fontSize = 10.sp,
                                 fontFamily = FontFamily.Monospace
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "${selectedOrg.description}\n" +
+                                        "Sector: ${selectedOrg.industry.displayName} • Subnet: ${selectedOrg.subnet} • Employees: ${String.format("%,d", selectedOrg.employeeCount)} • Tier ${selectedOrg.securityLevel}",
+                                color = TextMuted,
+                                fontSize = 9.sp,
+                                fontFamily = FontFamily.Monospace,
+                                maxLines = 4
                             )
                         }
 
-                        // Actions Row
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        // Right side: Stacked action buttons
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                            horizontalAlignment = Alignment.End
+                        ) {
+                            // Button 1: STUDY FULL TREE
                             Box(
                                 modifier = Modifier
+                                    .width(135.dp)
                                     .clip(RoundedCornerShape(4.dp))
-                                    .background(StatusConnected.copy(alpha = 0.2f))
-                                    .border(0.5.dp, StatusConnected, RoundedCornerShape(4.dp))
+                                    .background(StatusConnected.copy(alpha = 0.18f))
+                                    .border(1.dp, StatusConnected, RoundedCornerShape(4.dp))
                                     .clickable { onNavigateToIntelligence() }
-                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    .padding(vertical = 5.dp, horizontal = 6.dp),
+                                contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = "STUDY FULL INTEL ➔",
+                                    text = "STUDY\nFULL TREE",
                                     color = StatusConnected,
                                     fontSize = 9.sp,
                                     fontWeight = FontWeight.Bold,
-                                    fontFamily = FontFamily.Monospace
+                                    fontFamily = FontFamily.Monospace,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
                                 )
                             }
 
+                            // Button 2: SECURITY AUDIT
                             Box(
                                 modifier = Modifier
+                                    .width(135.dp)
                                     .clip(RoundedCornerShape(4.dp))
-                                    .background(accentColor.copy(alpha = 0.2f))
-                                    .border(0.5.dp, accentColor, RoundedCornerShape(4.dp))
+                                    .background(accentColor.copy(alpha = 0.18f))
+                                    .border(1.dp, accentColor, RoundedCornerShape(4.dp))
                                     .clickable { onNavigateToSecurity() }
-                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    .padding(vertical = 5.dp, horizontal = 6.dp),
+                                contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = "SEC AUDIT",
+                                    text = "SECURITY\nAUDIT",
                                     color = accentColor,
                                     fontSize = 9.sp,
                                     fontWeight = FontWeight.Bold,
-                                    fontFamily = FontFamily.Monospace
+                                    fontFamily = FontFamily.Monospace,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                            }
+
+                            // Button 3: QUICK NETWORK ACCESS
+                            Box(
+                                modifier = Modifier
+                                    .width(135.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(CyberCyan.copy(alpha = 0.18f))
+                                    .border(1.dp, CyberCyan, RoundedCornerShape(4.dp))
+                                    .clickable {
+                                        onSelectOrg(selectedOrg.id)
+                                    }
+                                    .padding(vertical = 5.dp, horizontal = 6.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "QUICK NETWORK\nACCESS",
+                                    color = CyberCyan,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = FontFamily.Monospace,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
                                 )
                             }
                         }

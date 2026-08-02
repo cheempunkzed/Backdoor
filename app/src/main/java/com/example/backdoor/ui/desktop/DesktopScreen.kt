@@ -188,28 +188,24 @@ fun DesktopScreen(
                 }
 
                 // Render Windowed Stack & Fullscreen Apps
-                val activeFullscreenWin = openWindows
-                    .filter { !it.isMinimized && it.displayMode == ApplicationDisplayMode.FULLSCREEN }
-                    .maxByOrNull { it.zIndex }
+                val unminimizedWindows = openWindows.filterNot { it.isMinimized }.sortedBy { it.zIndex }
 
-                if (activeFullscreenWin != null) {
-                    FullscreenAppContainer(
-                        winState = activeFullscreenWin,
-                        osManager = osManager,
-                        accentColor = accentColor
-                    )
-                } else {
-                    openWindows.filter { !it.isMinimized && it.displayMode == ApplicationDisplayMode.WINDOWED }
-                        .sortedBy { it.zIndex }
-                        .forEach { winState ->
-                            androidx.compose.runtime.key(winState.windowId) {
-                                DraggableWindowWrapper(
-                                    winState = winState,
-                                    osManager = osManager,
-                                    accentColor = accentColor
-                                )
-                            }
+                unminimizedWindows.forEach { winState ->
+                    androidx.compose.runtime.key(winState.app) {
+                        if (winState.displayMode == ApplicationDisplayMode.FULLSCREEN) {
+                            FullscreenAppContainer(
+                                winState = winState,
+                                osManager = osManager,
+                                accentColor = accentColor
+                            )
+                        } else {
+                            DraggableWindowWrapper(
+                                winState = winState,
+                                osManager = osManager,
+                                accentColor = accentColor
+                            )
                         }
+                    }
                 }
             }
 
@@ -219,11 +215,13 @@ fun DesktopScreen(
                 openApps = runningApps,
                 focusedApp = activeApp,
                 onAppClick = { app ->
-                    if (osManager.windowManager.isAppOpen(app)) {
-                        if (activeApp == app) {
+                    val winState = openWindows.find { it.app == app }
+                    if (winState != null) {
+                        if (!winState.isMinimized && winState.isFocused) {
                             osManager.windowManager.minimizeWindow(app)
                         } else {
-                            osManager.openApp(app)
+                            val modeToUse = if (winState.displayMode == ApplicationDisplayMode.MINIMIZED) ApplicationDisplayMode.FULLSCREEN else winState.displayMode
+                            osManager.openApp(app, modeToUse)
                         }
                     } else {
                         osManager.openApp(app, ApplicationDisplayMode.FULLSCREEN)

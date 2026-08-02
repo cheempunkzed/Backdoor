@@ -136,6 +136,13 @@ class AbyssOSManager(
         startStatusTicker()
 
         scope.launch {
+            windowManager.windows.collect { wins ->
+                val focused = wins.find { it.isFocused && !it.isMinimized }?.app
+                _activeApp.value = focused
+            }
+        }
+
+        scope.launch {
             val profile = saveManager.getUserProfile()
             _userProfile.value = profile
 

@@ -59,6 +59,12 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -158,10 +164,13 @@ fun TerminalApp(
         }
     }
 
+    val keyboardController = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
     val focusRequester = remember { FocusRequester() }
 
     LaunchedEffect(Unit) {
-        focusRequester.requestFocus()
+        kotlinx.coroutines.delay(100)
+        runCatching { focusRequester.requestFocus() }
+        keyboardController?.show()
     }
 
     val submitCommand = { cmdToRun: String ->
@@ -198,7 +207,10 @@ fun TerminalApp(
                 inputCommand = ""
                 historyIndex = -1
                 listState.animateScrollToItem((history.size).coerceAtLeast(0))
+                runCatching { focusRequester.requestFocus() }
             }
+        } else {
+            runCatching { focusRequester.requestFocus() }
         }
     }
 
@@ -368,7 +380,7 @@ fun TerminalApp(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
                     ) {
-                        focusRequester.requestFocus()
+                        runCatching { focusRequester.requestFocus() }
                     }
             ) {
                 // History Items
@@ -433,10 +445,27 @@ fun TerminalApp(
 
                         BasicTextField(
                             value = inputCommand,
-                            onValueChange = { inputCommand = it },
+                            onValueChange = { newValue ->
+                                if (newValue.contains('\n')) {
+                                    val cmd = newValue.replace("\n", "")
+                                    submitCommand(cmd)
+                                } else {
+                                    inputCommand = newValue
+                                }
+                            },
                             modifier = Modifier
                                 .weight(1f)
-                                .focusRequester(focusRequester),
+                                .focusRequester(focusRequester)
+                                .onPreviewKeyEvent { keyEvent ->
+                                    if (keyEvent.type == KeyEventType.KeyUp &&
+                                        (keyEvent.key == Key.Enter || keyEvent.key == Key.NumPadEnter)
+                                    ) {
+                                        submitCommand(inputCommand)
+                                        true
+                                    } else {
+                                        false
+                                    }
+                                },
                             textStyle = TextStyle(
                                 color = TextPrimary,
                                 fontSize = termSettings.fontSize.sp,
@@ -445,9 +474,9 @@ fun TerminalApp(
                             cursorBrush = SolidColor(
                                 if (termSettings.cursorBlink) effectiveTextColor.copy(alpha = cursorAlpha) else effectiveTextColor
                             ),
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                            keyboardActions = KeyboardActions(onDone = { submitCommand(inputCommand) }),
-                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default),
+                            singleLine = false,
+                            maxLines = 1,
                             decorationBox = { innerTextField ->
                                 innerTextField()
                             }

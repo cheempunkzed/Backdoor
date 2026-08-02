@@ -40,8 +40,8 @@ class WindowManager(
         val existing = _windows.value.find { it.app == app }
         if (existing != null) {
             maxZIndex++
-            val targetMode = if (existing.isMinimized) {
-                if (existing.displayMode == ApplicationDisplayMode.MINIMIZED) mode else existing.displayMode
+            val targetMode = if (mode == ApplicationDisplayMode.MINIMIZED) {
+                if (existing.displayMode == ApplicationDisplayMode.MINIMIZED) ApplicationDisplayMode.FULLSCREEN else existing.displayMode
             } else {
                 mode
             }
@@ -62,13 +62,14 @@ class WindowManager(
         }
 
         maxZIndex++
+        val initialMode = if (mode == ApplicationDisplayMode.MINIMIZED) ApplicationDisplayMode.FULLSCREEN else mode
         val newWindow = WindowState(
             windowId = "win_${app.name.lowercase()}_${System.currentTimeMillis()}",
             app = app,
             title = app.appName,
-            isMinimized = (mode == ApplicationDisplayMode.MINIMIZED),
+            isMinimized = false,
             isFocused = true,
-            displayMode = mode,
+            displayMode = initialMode,
             zIndex = maxZIndex
         )
 
@@ -83,8 +84,7 @@ class WindowManager(
                 when (mode) {
                     ApplicationDisplayMode.MINIMIZED -> w.copy(
                         isMinimized = true,
-                        isFocused = false,
-                        displayMode = ApplicationDisplayMode.MINIMIZED
+                        isFocused = false
                     )
                     ApplicationDisplayMode.FULLSCREEN -> {
                         maxZIndex++
