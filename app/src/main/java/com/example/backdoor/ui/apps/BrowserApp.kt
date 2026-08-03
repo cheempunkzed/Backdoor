@@ -397,6 +397,8 @@ fun BrowserApp(
                     .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
                     .padding(16.dp)
             ) {
+                val webEntity = osManager.webContentEngine.getWebEntity(currentUrl)
+
                 when {
                     currentUrl.endsWith(".onion", ignoreCase = true) || currentUrl.equals("darknet", ignoreCase = true) -> {
                         OnionWebPage(
@@ -417,17 +419,26 @@ fun BrowserApp(
                     currentUrl.equals("about:network", ignoreCase = true) -> {
                         AboutNetworkPage(osManager = osManager, accentColor = accentColor)
                     }
-                    currentUrl.contains("wiki", ignoreCase = true) || currentUrl.contains("docs", ignoreCase = true) -> {
-                        WikiWebPage(osManager = osManager, accentColor = accentColor)
-                    }
                     corporateOrg != null -> {
-                        CorporateWebPage(org = corporateOrg, osManager = osManager, accentColor = accentColor)
+                        DynamicWebEntityPage(
+                            webEntity = webEntity,
+                            corporateOrg = corporateOrg,
+                            osManager = osManager,
+                            accentColor = accentColor,
+                            onNavigate = { newUrl -> setCurrentUrl(newUrl) }
+                        )
                     }
                     resolvedIp != null && targetNode != null -> {
                         NodeWebPage(node = targetNode, osManager = osManager, accentColor = accentColor)
                     }
                     else -> {
-                        ErrorWebPage(url = currentUrl)
+                        DynamicWebEntityPage(
+                            webEntity = webEntity,
+                            corporateOrg = null,
+                            osManager = osManager,
+                            accentColor = accentColor,
+                            onNavigate = { newUrl -> setCurrentUrl(newUrl) }
+                        )
                     }
                 }
             }
@@ -2006,6 +2017,189 @@ private fun OnionWebPage(
                             Text("Owner: @${activeService?.ownerHandle ?: "anonymous"}", color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
                             Spacer(modifier = Modifier.height(10.dp))
                             Text(activeService?.description ?: "Encrypted darknet node active on AbyssNet Onion Network.", color = TextPrimary, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DynamicWebEntityPage(
+    webEntity: com.example.backdoor.web.models.WebEntity,
+    corporateOrg: Organization?,
+    osManager: AbyssOSManager,
+    accentColor: Color,
+    onNavigate: (String) -> Unit
+) {
+    var selectedSection by remember { mutableStateOf(webEntity.pages.firstOrNull()?.sectionName ?: "HOME") }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Brand & Entity Header
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(8.dp))
+                .background(AbyssSurface)
+                .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = when (webEntity.contentType) {
+                    com.example.backdoor.web.models.WebEntityType.CORPORATE -> Icons.Default.Business
+                    com.example.backdoor.web.models.WebEntityType.NEWS -> Icons.Default.Domain
+                    com.example.backdoor.web.models.WebEntityType.DOCUMENTATION -> Icons.Default.Security
+                    else -> Icons.Default.Router
+                },
+                contentDescription = webEntity.name,
+                tint = accentColor,
+                modifier = Modifier.size(32.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = webEntity.name.uppercase(),
+                    color = TextPrimary,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace
+                )
+                Text(
+                    text = "${webEntity.domain} • Type: ${webEntity.contentType.displayName}",
+                    color = CyberCyan,
+                    fontSize = 11.sp,
+                    fontFamily = FontFamily.Monospace
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(if (webEntity.securityLevel <= 2) StatusConnected.copy(alpha = 0.2f) else NeonRed.copy(alpha = 0.2f))
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            ) {
+                Text(
+                    text = "CLEARANCE T${webEntity.securityLevel}",
+                    color = if (webEntity.securityLevel <= 2) StatusConnected else NeonRed,
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Section Navigation Bar
+        val sections = webEntity.pages.map { it.sectionName } + if (corporateOrg != null) listOf("EMPLOYEES", "INCIDENTS") else emptyList()
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            sections.forEach { sectionName ->
+                val isSelected = selectedSection == sectionName
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(if (isSelected) accentColor.copy(alpha = 0.2f) else AbyssSurface)
+                        .border(0.5.dp, if (isSelected) accentColor else Color.Transparent, RoundedCornerShape(4.dp))
+                        .clickable { selectedSection = sectionName }
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        text = sectionName,
+                        color = if (isSelected) accentColor else TextMuted,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Active Content Body
+        Box(modifier = Modifier.weight(1f)) {
+            val matchedPage = webEntity.pages.find { it.sectionName == selectedSection }
+            if (matchedPage != null) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Text(
+                        text = matchedPage.title.uppercase(),
+                        color = TechPurple,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = matchedPage.content,
+                        color = TextPrimary,
+                        fontSize = 12.sp,
+                        lineHeight = 18.sp,
+                        fontFamily = FontFamily.Monospace
+                    )
+
+                    if (webEntity.eventHistory.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(AbyssSurface)
+                                .border(0.5.dp, NeonRed.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
+                                .padding(10.dp)
+                        ) {
+                            Column {
+                                Text(
+                                    text = "SYSTEM ADVISORY & INCIDENT LOG",
+                                    color = NeonRed,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = FontFamily.Monospace
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                webEntity.eventHistory.take(5).forEach { evt ->
+                                    Text(
+                                        text = "• $evt",
+                                        color = TextMuted,
+                                        fontSize = 10.sp,
+                                        fontFamily = FontFamily.Monospace
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            } else if (corporateOrg != null && selectedSection == "EMPLOYEES") {
+                val orgAi = osManager.livingWorldEngine.organizationsAI.collectAsState().value[corporateOrg.id]
+                val employees = orgAi?.employees?.collectAsState()?.value ?: emptyList()
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    items(employees) { emp ->
+                        Column(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp)).background(AbyssSurface).padding(8.dp)) {
+                            Text("${emp.name} - ${emp.position}", color = TextPrimary, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+                            Text("Department: ${emp.position.department} | Status: ${if (emp.isAtWork) "ACTIVE ON SITE" else "OFFLINE"}", color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                        }
+                    }
+                }
+            } else if (corporateOrg != null && selectedSection == "INCIDENTS") {
+                val incidents = osManager.livingWorldEngine.incidents.collectAsState().value.filter { it.organizationId == corporateOrg.id }
+                if (incidents.isEmpty()) {
+                    Text("NO SECURITY INCIDENTS REPORTED FOR THIS GRID.", color = StatusConnected, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+                } else {
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        items(incidents) { inc ->
+                            Column(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp)).background(AbyssSurface).padding(8.dp)) {
+                                Text("INCIDENT #${inc.id.take(8)} - ${inc.type.name}", color = NeonRed, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                                Text("Severity: ${inc.severity.name} | Server: ${inc.targetServerId ?: "GRID CORE"} | Status: ${if (inc.resolved) "RESOLVED" else "ACTIVE"}", color = TextPrimary, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                            }
                         }
                     }
                 }

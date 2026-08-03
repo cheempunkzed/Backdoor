@@ -13,4 +13,6 @@
 - [x] **Milestone 9: Shadow Economy (v1.0.0)** - ShadowEconomyEngine, WalletManager, Contracts, Marketplace, Mail, News, Inventory.
 - [x] **Milestone 1.1.0: AbyssOS Hybrid Interface (v1.1.0)** - Hybrid mobile-desktop OS mode system (Fullscreen, Windowed, Minimized), mobile gesture bar, back header navigation, and contextual dock taskbar.
 - [x] **Milestone 1.2.0: Abyss Contracts Engine (v1.2.0)** - Objective-driven mission framework, event-driven task verification, `CompletionValidator`, real-time objective checklists, and mission progress persistence.
-- [ ] **Milestone 13: Campaign & Narrative (v1.3.0)** - Story campaigns, faction reputation progression, branching narrative arcs.
+- [x] **Milestone 1.3.0: Abyss Web Matrix (v1.3.0)** - Simulated living internet ecosystem, `WebContentEngine`, procedural entity & page generation, event-driven website updates, tabs, bookmarks with categories, history manager, darknet onion network integration, and forum/mail ecosystem.
+- [x] **Milestone 1.4.0: Underground Ecosystem (v1.4.0)** - Digital identity system, underground factions, PGP encrypted messaging, rumor engine, dark market expansion, social trust matrix, and full darknet persistence.
+- [ ] **Milestone 1.5.0: Faction Warfare & Narrative Campaign (v1.5.0)** - Faction wars, territory grid control, story campaigns, and branching narrative arcs.

@@ -2,6 +2,30 @@
 
 All notable changes to the Backdoor project will be documented in this file.
 
+## [1.4.0] - 2026-08-03
+### Development Milestone 1.4.0: Underground Ecosystem
+#### Added
+- **Digital Identity System (`DigitalIdentity.kt`)**: Multi-identity management enabling operators to create, switch, and operate distinct digital personas (`@cipher_ghost`, `@phantom_operator`, etc.) with individual PGP fingerprints, aliases, criminal heat metrics, and hidden profiles.
+- **Underground Faction System (`Faction.kt`)**: 4 major cypherpunk factions (`Cypher Syndicate`, `Void Sect`, `Aegis Red`, `Ghost Network`) with ideology tags, minimum trust requirements, faction standings (`UNTRUSTED`, `NEUTRAL`, `ACCEPTED`, `INNER_CIRCLE`), and per-faction hidden service access.
+- **Underground Rumor Engine (`RumorEngine.kt` & `Rumor.kt`)**: Dynamic rumor and leak propagation engine generating credibility-scored corporate leaks, node raid notices, zero-day drops, and underground event alerts (`UndergroundEvent`). Automatically injects high-impact rumors into forum threads.
+- **Encrypted Private Messaging Subsystem (`EncryptedMessage.kt`)**: PGP-signed end-to-end messaging system allowing encrypted communication between player identities and darknet NPCs. Features read/unread state tracking, attachments, and terminal/UI message management.
+- **Expanded Dark Market Engine (`DarkMarketListing`)**: Category-indexed shadow exchange market with seller trust ratings, credit prices, dynamic stock availability, and automated purchase processing tied to player balance.
+- **Expanded Terminal Integration (`OnionCommand.kt`)**: Advanced terminal commands for `onion status`, `onion circuits`, `onion services`, `onion search <query>`, `onion peers`, `onion identity <list|create|switch>`, `onion forum <list|read|post>`, and `onion pm <inbox|read|send>`.
+- **Interactive DarkNet Application (`DarkNetApp` in `StubApps.kt`)**: Tabbed navigation view (`OVERVIEW`, `FACTIONS`, `MESSAGES`, `RUMORS`, `MARKET`, `SERVICES`) providing full visual identity switching, faction reputation bars, message reader, rumor matrix, and shadow market purchasing.
+- **State Persistence Expansion**: Integrated full serialization and deserialization of darknet identities, factions, PGP messages, rumors, and market stock into `SaveManager` (`saveDarknetJson` / `getDarknetJson`) and background simulation loop.
+- **System Documentation**: Added and updated `/docs/DarkLayer.md`, `/docs/Factions.md`, `/docs/NPCSimulation.md`, `/docs/Marketplace.md`, `/docs/RumorEngine.md`, `/docs/GameplaySystems.md`, and `/docs/Roadmap.md`.
+
+## [1.3.0] - 2026-08-03
+### Development Milestone 1.3.0: Abyss Web Matrix
+#### Added
+- **Simulated Living Internet Engine (`WebContentEngine`)**: Dynamic website generator creating digital web entities for corporate domains, news portals, research groups, darknet forums, and documentation nodes tied to real organizations, servers, NPCs, and economy events.
+- **Event-Driven Web Reactivity**: Subscribes to `SystemEventBus` events (`ServerCompromised`, `CompanySecurityChanged`, `DataLeakDetected`, `MissionCompleted`, `MarketChanged`) to update site content, press advisories, security status logs, and forum discussions in real time.
+- **Enhanced Browser Application (`BrowserApp.kt`)**: Multi-tab browsing system, categorised bookmarks (`Corporate`, `Research`, `Darknet`, `Personal`) with search filtering, visited history manager, and dropdown settings menu.
+- **Dynamic Multi-Section Page Renderer (`DynamicWebEntityPage`)**: Interactive section tabs (`HOME`, `ABOUT`, `SERVICES`, `SECURITY STATUS`, `PRESS`, `CONTACT`, `EMPLOYEES`, `INCIDENTS`) with live incident advisory banners and employee directories.
+- **DarkNet Connection & Onion Single Source of Truth**: Refactored `DarkNetApp` and `.onion` web resolution to observe `OnionNetworkEngine` state flows (`relayNodes`, `hiddenServices`, `playerReputation`).
+- **Web Matrix Persistence**: Full JSON serialization of generated web entities, browser bookmarks, tabs, and history state via `SaveManager`.
+- **System Documentation**: Added and updated `/docs/WebSystem.md`, `/docs/DarkLayer.md`, `/docs/NPCArchitecture.md`, `/docs/GameplaySystems.md`, `/docs/Roadmap.md`, and `/docs/Architecture.md`.
+
 ## [1.2.0] - 2026-08-03
 ### Development Milestone 1.2.0: Abyss Contracts Engine
 #### Added

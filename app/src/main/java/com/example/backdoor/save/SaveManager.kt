@@ -54,6 +54,9 @@ interface SaveManager {
 
     suspend fun getBrowserSettingsJson(): String?
     suspend fun saveBrowserSettingsJson(json: String): Boolean
+
+    suspend fun getWebContentJson(): String?
+    suspend fun saveWebContentJson(json: String): Boolean
 }
 
 class MemorySaveManager(
@@ -75,6 +78,7 @@ class MemorySaveManager(
     private var storedBrowserTabsJson: String? = null
     private var storedBrowserHistoryJson: String? = null
     private var storedBrowserSettingsJson: String? = null
+    private var storedWebContentJson: String? = null
 
     private val _currentSave = MutableStateFlow<SaveSlotEntity?>(
         SaveSlotEntity(
@@ -269,6 +273,15 @@ class MemorySaveManager(
 
     override suspend fun saveBrowserSettingsJson(json: String): Boolean {
         storedBrowserSettingsJson = json
+        return true
+    }
+
+    override suspend fun getWebContentJson(): String? {
+        return storedWebContentJson
+    }
+
+    override suspend fun saveWebContentJson(json: String): Boolean {
+        storedWebContentJson = json
         return true
     }
 }

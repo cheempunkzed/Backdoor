@@ -1,39 +1,18 @@
-# NPC Digital Identity Architecture (v0.8.0)
+# NPC Architecture & Living World Integration (v1.3.0)
 
 ## Overview
-The NPC Digital Identity Subsystem populates the Onion Network with autonomous simulated handles, personalities, expertise domains, and activity patterns.
+NPCs in Backdoor are active agents within the cyberpunk simulation. They have distinct personalities, security roles, affiliations, and behaviors that directly influence web content, darknet forums, corporate grids, and mail systems.
 
-## NPC Roster
+## Integration Architecture
 
-1. **`@v0id_walker`**
-   - **Personality**: Philosophical Cypherpunk
-   - **Domain**: Kernel Architecture & Onion Protocols
-   - **Affiliations**: Abyss Forum Mod, Cypher Cell
-   - **Rank**: Shadow Administrator
+### 1. LivingWorldEngine (`com.example.backdoor.simulation.engine.LivingWorldEngine`)
+- Simulates corporate employee routines, security incidents, market updates, and news publication.
+- Links corporate employees (`Employee`) with workplace status, security access levels, and department roles.
 
-2. **`@cypher_ghost`**
-   - **Personality**: Rogue Security Auditor
-   - **Domain**: Zero-Day Exploits & Reverse Engineering
-   - **Affiliations**: BlackVault Curator
-   - **Rank**: Veteran Cypherpunk
+### 2. Anonymous Identities (`AnonymousIdentity`)
+- Anonymous handles in darknet forums (`@zero_cool`, `@shadow_reaper`, `@cipher_queen`, `@hex_ghost`).
+- Dynamic forum post generation reacting to server breaches, corporate leaks, and market changes.
 
-3. **`@k3rnel_panic`**
-   - **Personality**: Hardware Tinkerer & Trader
-   - **Domain**: Router Firmware & FPGA Systems
-   - **Affiliations**: Shadow Exchange
-   - **Rank**: Network Operator
-
-4. **`@shadow_weaver`**
-   - **Personality**: Cryptographer
-   - **Domain**: Multi-hop Encryption & RSA Keys
-   - **Affiliations**: CipherRoom Operator
-   - **Rank**: Veteran Cypherpunk
-
-5. **`@root_daemon`**
-   - **Personality**: Ex-Aegis Corporate Insider
-   - **Domain**: Data Center Architecture & Corporate Leaks
-   - **Affiliations**: Whistleblower Portal
-   - **Rank**: Shadow Administrator
-
-## NPC Communication Engine
-NPCs post technical advisories, engage in discussions, leak corporate server credentials, and react dynamically to player activity on forums and hidden services.
+### 3. Mail & Social System Integration
+- Direct communication with NPCs for contracts, warnings, tips, and leaked access keys.
+- Real-time event notifications delivered directly to the player's inbox.

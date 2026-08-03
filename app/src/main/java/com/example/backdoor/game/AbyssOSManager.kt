@@ -86,6 +86,13 @@ class AbyssOSManager(
         corporateManager = corporateRepository,
         economyEngine = economyEngine
     )
+    val webContentEngine = com.example.backdoor.web.engine.WebContentEngine(
+        scope = scope,
+        eventBus = eventBus,
+        corporateRepository = corporateRepository,
+        darknetEngine = darknetEngine,
+        newsService = economyEngine.newsService
+    )
 
     private val _osState = MutableStateFlow(OsState.BOOTING)
     val osState: StateFlow<OsState> = _osState.asStateFlow()
@@ -170,6 +177,16 @@ class AbyssOSManager(
                 economyEngine.deserializeFromJson(economyJson)
             }
 
+            val webContentJson = saveManager.getWebContentJson()
+            if (!webContentJson.isNullOrEmpty()) {
+                webContentEngine.deserializeFromJson(webContentJson)
+            }
+
+            val darknetJson = saveManager.getDarknetJson()
+            if (!darknetJson.isNullOrEmpty()) {
+                darknetEngine.loadFromJson(darknetJson)
+            }
+
             // Restore Dock Pinned Apps
             val dockJson = saveManager.getDockPinnedAppsJson()
             if (!dockJson.isNullOrEmpty()) {
@@ -227,8 +244,11 @@ class AbyssOSManager(
         scope.launch {
             while(true) {
                 delay(10000)
+                darknetEngine.tickSimulation()
                 saveManager.saveLivingWorldJson(livingWorldEngine.serializeToJson())
                 saveManager.saveEconomyJson(economyEngine.serializeToJson())
+                saveManager.saveWebContentJson(webContentEngine.serializeToJson())
+                saveManager.saveDarknetJson(darknetEngine.toJson())
             }
         }
         
@@ -494,6 +514,7 @@ class AbyssOSManager(
             session = terminalSession,
             networkEngine = networkEngine,
             eventBus = eventBus,
+            onionEngine = darknetEngine,
             onExitRequested = { closeActiveApp() },
             onOpenAppRequested = { appName ->
                 val targetApp = OsApp.entries.find { 
