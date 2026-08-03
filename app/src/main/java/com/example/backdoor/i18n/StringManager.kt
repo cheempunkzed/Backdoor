@@ -1,5 +1,9 @@
 package com.example.backdoor.i18n
 
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+
 enum class Language(val code: String, val displayName: String) {
     ENGLISH("en", "English"),
     RUSSIAN("ru", "Русский")
@@ -76,7 +80,18 @@ enum class StringKey {
 }
 
 object StringManager {
-    var currentLanguage: Language = Language.ENGLISH
+    private val _languageState = MutableStateFlow(Language.ENGLISH)
+    val languageState: StateFlow<Language> = _languageState.asStateFlow()
+
+    var currentLanguage: Language
+        get() = _languageState.value
+        set(value) {
+            _languageState.value = value
+        }
+
+    fun setLanguage(lang: Language) {
+        _languageState.value = lang
+    }
 
     private val enStrings = mapOf(
         StringKey.CMD_NOT_FOUND to "Command '%s' not found. Type 'help' for available commands.",

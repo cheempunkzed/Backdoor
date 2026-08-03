@@ -40,6 +40,9 @@ import com.example.ui.theme.TechPurple
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
+
 @Composable
 fun WindowFrame(
     title: String,
@@ -47,6 +50,7 @@ fun WindowFrame(
     onClose: () -> Unit,
     onFullscreen: (() -> Unit)? = null,
     onMinimize: (() -> Unit)? = null,
+    onBringToFront: (() -> Unit)? = null,
     accentColor: Color = TechPurple,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
@@ -62,6 +66,11 @@ fun WindowFrame(
                 color = accentColor.copy(alpha = 0.35f),
                 shape = RoundedCornerShape(16.dp)
             )
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = { onBringToFront?.invoke() }
+                )
+            }
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             // Technical Dashboard Window Title Bar

@@ -22,6 +22,137 @@ class KnowledgeDatabase {
     }
 
     private fun populateDefaultArticles() {
+        // --- GAMEPLAY MANUAL & MECHANICS ---
+        articles.add(
+            WikiArticle(
+                id = "manual-getting-started",
+                title = "Getting Started: The Operator's Guide",
+                category = "Manual",
+                summary = "Introduction to AbyssOS and your role as a freelance operator.",
+                content = """
+                    # Getting Started in AbyssOS
+                    
+                    Welcome to AbyssOS. You are a freelance cyber-operator equipped with a state-of-the-art terminal and darknet access.
+                    
+                    ## Your Interface
+                    - **Desktop**: The main workspace. You can open multiple applications (Terminal, Browser, Network Scanner, etc.).
+                    - **Dock**: Pin frequently used apps to the bottom dock for quick access.
+                    - **System Monitor**: Keep an eye on your CPU/RAM usage. Running too many intensive tasks will slow down your rig.
+                    
+                    ## First Steps
+                    1. Open the **Terminal** and type `help` to see available commands.
+                    2. Open the **Browser** and navigate to `wiki.abyss` (you are here!) or `dir.onion` to explore the network.
+                    3. Launch the **DarkNet** app to monitor your reputation and active onion circuits.
+                    4. Check the **Contracts** app to find freelance hacking jobs and earn Credits.
+                """.trimIndent(),
+                tags = listOf("Manual", "Beginner", "Interface", "Getting Started")
+            )
+        )
+
+        articles.add(
+            WikiArticle(
+                id = "manual-hacking-101",
+                title = "Hacking 101: Recon and Exploitation",
+                category = "Manual",
+                summary = "A comprehensive guide on how to hack servers and complete contracts.",
+                content = """
+                    # Hacking 101
+                    
+                    Hacking in AbyssOS follows a realistic workflow: Reconnaissance, Scanning, Exploitation, and Exfiltration.
+                    
+                    ## Step 1: Reconnaissance (Terminal)
+                    Use the `whois` or `nslookup` commands on a target domain (e.g., `whois aegis-corp.com`) to find its IP address.
+                    Use `ping <ip>` to verify the target is online.
+                    
+                    ## Step 2: Scanning
+                    Use the **Network Scanner** app or terminal commands to scan the target IP for open ports.
+                    Terminal: `sec scan <ip>` will run an active nmap-style scan to reveal open ports and running services (e.g., SSH on port 22, HTTP on port 80).
+                    
+                    ## Step 3: Assessment
+                    Once you know the open ports, use `sec assess <ip>` to find known vulnerabilities on those specific services.
+                    
+                    ## Step 4: Exploitation & Contracts
+                    When you accept a contract in the **Contracts** app, you will be given a target and an objective (e.g., steal a file, deface a website).
+                    You must use the terminal and specialized tools (unlocked later) to penetrate the network, bypass firewalls, and execute your payload.
+                    
+                    Always remember to cover your tracks by clearing logs in `/var/log` if you gain root access!
+                """.trimIndent(),
+                tags = listOf("Manual", "Hacking", "Recon", "Scanning", "Exploitation")
+            )
+        )
+
+        articles.add(
+            WikiArticle(
+                id = "manual-darknet",
+                title = "The Darknet: Onion Routing and Reputation",
+                category = "Manual",
+                summary = "Understanding AbyssNet, onion circuits, and how to stay anonymous.",
+                content = """
+                    # The Darknet (AbyssNet)
+                    
+                    The Darknet is a decentralized network of encrypted nodes accessed via `.onion` addresses.
+                    
+                    ## Onion Routing
+                    Your connection to any `.onion` site (like the forum or market) is routed through multiple relay nodes. This hides your real IP address.
+                    You can view your active circuit in the **Browser** header or manage relays in the **DarkNet** app.
+                    
+                    ## Reputation System
+                    As a shadow operator, your reputation is everything.
+                    - **Trust**: Earned by completing contracts successfully and interacting positively on the forum.
+                    - **Fame**: Earned by completing high-profile hacks or selling valuable exploits on the market.
+                    
+                    Higher reputation unlocks access to exclusive hidden services, advanced hacking tools, and more lucrative contracts.
+                    
+                    ## Key Hidden Services
+                    - `dir.onion`: The hidden service directory. Start here to find other nodes.
+                    - `abyss-forum.onion`: The underground forum. Socialize, buy/sell 0-days, and gather intel.
+                    - `darkmarket.onion`: The shadow exchange for hardware and exploit modules.
+                """.trimIndent(),
+                tags = listOf("Manual", "Darknet", "Onion", "Reputation", "Anonymity")
+            )
+        )
+        
+        articles.add(
+            WikiArticle(
+                id = "manual-terminal",
+                title = "Terminal Commands Reference",
+                category = "Manual",
+                summary = "A quick reference guide for essential terminal commands.",
+                content = """
+                    # Terminal Commands Reference
+                    
+                    Your terminal is your most powerful tool. Here are the core commands:
+                    
+                    ## File System Navigation
+                    - `ls [dir]`: List directory contents.
+                    - `cd <dir>`: Change current directory.
+                    - `pwd`: Print working directory.
+                    
+                    ## File Operations
+                    - `cat <file>`: Read file contents.
+                    - `mkdir <dir>`: Create a new directory.
+                    - `cp <src> <dest>`: Copy a file or directory.
+                    - `mv <src> <dest>`: Move or rename a file.
+                    - `rm <file>`: Remove a file.
+                    - `chmod <perms> <file>`: Change file permissions.
+                    
+                    ## Networking & Security
+                    - `ping <host>`: Check connectivity to a host.
+                    - `nslookup <domain>`: Resolve domain name to IP.
+                    - `whois <domain>`: Get WHOIS registration info.
+                    - `netstat`: List active network connections.
+                    - `sec scan <ip>`: Run a port scan on a target.
+                    - `sec assess <ip>`: Assess vulnerabilities on a target.
+                    
+                    ## System
+                    - `history`: View command history.
+                    - `clear`: Clear the terminal screen.
+                """.trimIndent(),
+                tags = listOf("Manual", "Terminal", "Commands", "CLI")
+            )
+        )
+
+        // --- ORIGINAL TECHNICAL ARTICLES ---
         articles.add(
             WikiArticle(
                 id = "dev-core-router",

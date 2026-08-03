@@ -13,6 +13,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -319,6 +320,11 @@ private fun FullscreenAppContainer(
         modifier = modifier
             .fillMaxSize()
             .background(AbyssBackground)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = { osManager.windowManager.bringToFront(winState.app) }
+                )
+            }
     ) {
         // Fullscreen Mobile Cyber Header
         Box(
@@ -479,9 +485,6 @@ private fun DraggableWindowWrapper(
                     offsetY += dragAmount.y
                 }
             }
-            .clickable {
-                osManager.windowManager.bringToFront(winState.app)
-            }
     ) {
         WindowFrame(
             title = winState.title,
@@ -489,6 +492,7 @@ private fun DraggableWindowWrapper(
             onClose = { osManager.closeApp(winState.app) },
             onFullscreen = { osManager.windowManager.setDisplayMode(winState.app, ApplicationDisplayMode.FULLSCREEN) },
             onMinimize = { osManager.windowManager.minimizeWindow(winState.app) },
+            onBringToFront = { osManager.windowManager.bringToFront(winState.app) },
             accentColor = if (winState.isFocused) accentColor else TextMuted
         ) {
             RenderAppContent(app = winState.app, osManager = osManager, accentColor = accentColor)

@@ -1999,9 +1999,9 @@ private fun OnionWebPage(
 
             else -> {
                 Column(modifier = Modifier.fillMaxSize()) {
-                    Text("=== ${activeService?.name ?: url.uppercase()} ===", color = TechPurple, fontSize = 14.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
-                    Text("Service Address: $url", color = CyberCyan, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("=== ${activeService?.name ?: url.uppercase()} ===", color = TechPurple, fontSize = 16.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                    Text("Service Address: $url", color = CyberCyan, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     Box(
                         modifier = Modifier
@@ -2009,14 +2009,67 @@ private fun OnionWebPage(
                             .weight(1f)
                             .clip(RoundedCornerShape(6.dp))
                             .background(AbyssSurface)
-                            .padding(12.dp)
+                            .border(1.dp, TechPurple.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
+                            .padding(16.dp)
                     ) {
                         Column {
-                            Text("Service Type: ${activeService?.type?.displayName ?: "Encrypted Node"}", color = TextPrimary, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
-                            Text("Access Clearance: ${activeService?.accessLevel?.displayName ?: "Public Access"}", color = StatusConnected, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
-                            Text("Owner: @${activeService?.ownerHandle ?: "anonymous"}", color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
-                            Spacer(modifier = Modifier.height(10.dp))
-                            Text(activeService?.description ?: "Encrypted darknet node active on AbyssNet Onion Network.", color = TextPrimary, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("SYSTEM NODE IDENTITY VERIFIED", color = StatusConnected, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                                Icon(imageVector = Icons.Default.Security, contentDescription = "Secure", tint = StatusConnected, modifier = Modifier.size(16.dp))
+                            }
+                            
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
+                            Text("Service Type: ${activeService?.type?.displayName ?: "Encrypted Node"}", color = TextPrimary, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+                            Text("Access Clearance: ${activeService?.accessLevel?.displayName ?: "Public Access"}", color = StatusConnected, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+                            Text("Owner: @${activeService?.ownerHandle ?: "anonymous"}", color = TextMuted, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+                            
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
+                            androidx.compose.material3.HorizontalDivider(color = TechPurple.copy(alpha = 0.2f))
+                            
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
+                            Text("NODE TRANSMISSION PAYLOAD:", color = CyberCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(Color.Black.copy(alpha = 0.5f))
+                                    .border(0.5.dp, TechPurple.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
+                                    .padding(12.dp)
+                            ) {
+                                Text(
+                                    text = activeService?.description ?: "Encrypted darknet node active on AbyssNet Onion Network.\n\nNo public payload exposed.\nAuthentication required for further access.",
+                                    color = TextPrimary,
+                                    fontSize = 11.sp,
+                                    fontFamily = FontFamily.Monospace
+                                )
+                            }
+                            
+                            Spacer(modifier = Modifier.weight(1f))
+                            
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(TechPurple.copy(alpha = 0.2f))
+                                        .border(1.dp, TechPurple, RoundedCornerShape(4.dp))
+                                        .clickable { /* Simulate auth prompt */ }
+                                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                                ) {
+                                    Text("INITIATE HANDSHAKE", color = TechPurple, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                                }
+                            }
                         }
                     }
                 }

@@ -22,12 +22,18 @@ import com.example.backdoor.ui.boot.BootScreen
 import com.example.backdoor.ui.components.OsNotificationOverlay
 import com.example.backdoor.ui.desktop.DesktopScreen
 import com.example.backdoor.ui.login.LoginScreen
+import androidx.compose.ui.platform.LocalContext
 import com.example.ui.theme.BackdoorTheme
 
 @Composable
 fun BackdoorAppRoot() {
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val osManager = remember { AbyssOSManager(scope = scope) }
+    val osManager = remember { 
+        AbyssOSManager(scope = scope).apply {
+            attachContext(context)
+        }
+    }
 
     val osState by osManager.osState.collectAsState()
     val bootLogs by osManager.bootLogs.collectAsState()

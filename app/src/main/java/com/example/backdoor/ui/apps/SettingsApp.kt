@@ -50,6 +50,9 @@ import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 import kotlinx.coroutines.launch
 
+import com.example.backdoor.i18n.Language
+import com.example.backdoor.i18n.StringManager
+
 @Composable
 fun SettingsApp(
     osManager: AbyssOSManager,
@@ -246,6 +249,52 @@ fun SettingsApp(
                 colors = ButtonDefaults.buttonColors(containerColor = AbyssSurfaceVariant, contentColor = TextPrimary)
             ) {
                 Text("LOGOUT SESSION", fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Section: System Language
+        val currentLang by StringManager.languageState.collectAsState()
+        Text(
+            text = "SYSTEM LANGUAGE // ЯЗЫК СИСТЕМЫ",
+            color = TextMuted,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            fontFamily = FontFamily.Monospace
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Language.entries.forEach { lang ->
+                val isSelected = currentLang == lang
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(if (isSelected) accentColor.copy(alpha = 0.25f) else AbyssSurface)
+                        .border(
+                            width = 1.dp,
+                            color = if (isSelected) accentColor else Color.Transparent,
+                            shape = RoundedCornerShape(6.dp)
+                        )
+                        .clickable {
+                            StringManager.setLanguage(lang)
+                        }
+                        .padding(vertical = 10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "${lang.displayName} (${lang.code.uppercase()})",
+                        color = if (isSelected) accentColor else TextPrimary,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace
+                    )
+                }
             }
         }
 

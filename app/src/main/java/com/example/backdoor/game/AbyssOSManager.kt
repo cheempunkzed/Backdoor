@@ -152,6 +152,7 @@ class AbyssOSManager(
         securityFramework.darkNetHook = darknetEngine
         addSystemLog("KERNEL", "AbyssOS 1.1.0 Hybrid System initialized.", LogLevel.INFO)
         startStatusTicker()
+        startAutoSaveTicker()
 
         scope.launch {
             windowManager.windows.collect { wins ->
@@ -559,6 +560,48 @@ class AbyssOSManager(
                     userHandle = settingsRepository.settings.value.userHandle,
                     hostname = settingsRepository.settings.value.hostname
                 )
+            }
+        }
+    }
+
+    fun attachContext(context: android.content.Context) {
+        saveManager.attachContext(context)
+    }
+
+    fun saveAllState() {
+        scope.launch(Dispatchers.IO) {
+            try {
+                val user = _userProfile.value?.username ?: "operator"
+                val vfsJson = (vfs as? InMemoryVirtualFileSystem)?.serializeToJson()
+                if (!vfsJson.isNullOrEmpty()) saveManager.saveVfsDataJson(vfsJson)
+
+                val netJson = networkEngine.repository.serializeToJson()
+                if (!netJson.isNullOrEmpty()) saveManager.saveNetworkTopologyJson(netJson)
+
+                val simJson = worldSimulationEngine.serializeToJson()
+                if (!simJson.isNullOrEmpty()) saveManager.saveLivingWorldJson(simJson)
+
+                val ecoJson = economyEngine.serializeToJson()
+                if (!ecoJson.isNullOrEmpty()) saveManager.saveEconomyJson(ecoJson)
+
+                val darkJson = darknetEngine.toJson()
+                if (!darkJson.isNullOrEmpty()) saveManager.saveDarknetJson(darkJson)
+
+                val webJson = webContentEngine.serializeToJson()
+                if (!webJson.isNullOrEmpty()) saveManager.saveWebContentJson(webJson)
+
+                saveManager.saveGame(1, "AutoSave")
+            } catch (e: Exception) {
+                // Ignore background save errors
+            }
+        }
+    }
+
+    private fun startAutoSaveTicker() {
+        scope.launch {
+            while (true) {
+                delay(10000L)
+                saveAllState()
             }
         }
     }
