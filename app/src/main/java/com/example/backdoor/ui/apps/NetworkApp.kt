@@ -2147,71 +2147,14 @@ private fun NetworkMapModeView(
     accentColor: Color
 ) {
     var mapType by remember { mutableStateOf("LOCAL") } // LOCAL or TARGET
-    var nodeFilter by remember { mutableStateOf("ALL") } // ALL, ONLINE, OFFLINE
-
-    val filteredNodes = remember(nodes, nodeFilter) {
-        when (nodeFilter) {
-            "ONLINE" -> nodes.filter { it.status == NodeStatus.ONLINE }
-            "OFFLINE" -> nodes.filter { it.status == NodeStatus.OFFLINE }
-            else -> nodes
-        }
-    }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // Controls Top Row
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            // Layer selector (LOCAL vs TARGET)
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                listOf("LOCAL" to "LOCAL SUBNET", "TARGET" to "TARGET CORPORATE WAN").forEach { (key, label) ->
-                    val isSel = mapType == key
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(if (isSel) accentColor.copy(alpha = 0.2f) else AbyssSurface)
-                            .border(0.5.dp, if (isSel) accentColor else Color.White.copy(alpha = 0.04f), RoundedCornerShape(4.dp))
-                            .clickable { mapType = key }
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                    ) {
-                        Text(label, color = if (isSel) accentColor else TextMuted, fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
-                    }
-                }
-            }
-
-            // Node Filters Row (only relevant for local map)
-            if (mapType == "LOCAL") {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    listOf("ALL", "ONLINE", "OFFLINE").forEach { status ->
-                        val isSel = nodeFilter == status
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(if (isSel) accentColor.copy(alpha = 0.15f) else AbyssSurface)
-                                .border(0.5.dp, if (isSel) accentColor else Color.Transparent, RoundedCornerShape(4.dp))
-                                .clickable { nodeFilter = status }
-                                .padding(horizontal = 6.dp, vertical = 3.dp)
-                        ) {
-                            Text(status, color = if (isSel) accentColor else TextMuted, fontSize = 8.sp, fontFamily = FontFamily.Monospace)
-                        }
-                    }
-                }
-            }
-        }
-
         // Main Map Area
         Box(modifier = Modifier.weight(1f)) {
             if (mapType == "LOCAL") {
                 LocalTopologyMapView(
                     osManager = osManager,
-                    nodes = filteredNodes,
+                    nodes = nodes,
                     selectedNodeId = selectedNodeId,
                     onSelectNode = onSelectNode,
                     accentColor = accentColor

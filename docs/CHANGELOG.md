@@ -2,6 +2,16 @@
 
 All notable changes to the Backdoor project will be documented in this file.
 
+## [1.2.0] - 2026-08-03
+### Development Milestone 1.2.0: Abyss Contracts Engine
+#### Added
+- **Validated Objective System (`Objective` & `ObjectiveType`)**: Modular task objectives embedded into contracts tracking network scans, service discovery, security assessment, file downloads/deletions, terminal commands, darknet onion visits, forum posts, wallet transactions, and market purchases.
+- **Event-Driven Observer (`SystemEventBus`)**: Decoupled gameplay observer in `ContractManager` listening to real-time `SystemEvent` emissions across all OS subsystems.
+- **Completion Guard (`CompletionValidator`)**: Strict validator ensuring rewards are granted ONLY when all contract objectives, state requirements, and expiration rules are satisfied.
+- **Dynamic Multi-Step Contracts**: Dynamic contract generator producing multi-objective corporate, security, network, darknet, and economic missions.
+- **Enhanced Contracts UI (`ContractsApp.kt`)**: Interactive objective checklists with live progress counts (`✓` completed, `✗` pending), percentage counters, and protected reward claim controls.
+- **Mission Persistence**: Full JSON serialization of active contracts, objective progress, and mission history in `ShadowEconomyEngine` & `SaveManager`.
+
 ## [1.1.0] - 2026-08-01
 ### Development Milestone 1.1.0: Abyssos Hybrid Interface
 #### Added

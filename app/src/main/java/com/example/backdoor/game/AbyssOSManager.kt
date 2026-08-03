@@ -129,6 +129,7 @@ class AbyssOSManager(
     }
 
     init {
+        (vfs as? InMemoryVirtualFileSystem)?.eventBus = eventBus
         corporateRepository.registerWithNetworkEngine(networkEngine)
         securityFramework.updateVfs(vfs)
         securityFramework.darkNetHook = darknetEngine

@@ -24,6 +24,8 @@ class InMemoryVirtualFileSystem : VirtualFileSystem {
     // Scalable O(1) indexed path lookup map
     private val pathNodeMap = mutableMapOf<String, VFSNode>()
 
+    var eventBus: com.example.backdoor.core.SystemEventBus? = null
+
     init {
         pathNodeMap["/"] = root
         initializeDefaultFileSystem()
@@ -285,6 +287,7 @@ class InMemoryVirtualFileSystem : VirtualFileSystem {
         if (success) {
             val fullPath = resolvePath(if (dirPath == "/") "/$fileName" else "$dirPath/$fileName")
             logAuditAction("Created file", fullPath, owner)
+            eventBus?.emit(com.example.backdoor.core.SystemEvent.FileDownloaded(fullPath))
             notifyStateChanged()
         }
         return success
@@ -312,6 +315,7 @@ class InMemoryVirtualFileSystem : VirtualFileSystem {
             // Remove completely
             removeFromParentAndMap(node)
             logAuditAction("Deleted file permanently", resolved, userHandle)
+            eventBus?.emit(com.example.backdoor.core.SystemEvent.FileDeleted(resolved))
             notifyStateChanged()
             return true
         } else {

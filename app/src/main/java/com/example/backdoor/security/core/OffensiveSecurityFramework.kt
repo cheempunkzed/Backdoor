@@ -139,7 +139,26 @@ class OffensiveSecurityFramework(
             session.tasksExecuted.add(updatedTask)
 
             // Auto generate report if it's security assessment or host discovery
-            generateReportForTask(target, taskResult)
+            val report = generateReportForTask(target, taskResult)
+
+            val eventBus = (osManager as? com.example.backdoor.game.AbyssOSManager)?.eventBus
+            if (eventBus != null) {
+                if (moduleId == "mod-host-discovery" || moduleId == "mod-service-discovery") {
+                    eventBus.emit(com.example.backdoor.core.SystemEvent.NetworkScanCompleted(target = target))
+                }
+                if (moduleId == "mod-service-discovery") {
+                    eventBus.emit(com.example.backdoor.core.SystemEvent.ServiceDiscovered(target = target, serviceName = "SSH/HTTP", port = 80))
+                }
+                if (moduleId == "mod-security-assessment") {
+                    eventBus.emit(com.example.backdoor.core.SystemEvent.SecurityScanCompleted(target = target))
+                    if (taskResult.success) {
+                        eventBus.emit(com.example.backdoor.core.SystemEvent.VulnerabilityExploited(target = target, exploitName = "SecurityAssessmentSweep"))
+                    }
+                }
+                if (report != null) {
+                    eventBus.emit(com.example.backdoor.core.SystemEvent.SecurityReportCreated(report.filePath))
+                }
+            }
 
             onComplete?.invoke(taskResult)
         }

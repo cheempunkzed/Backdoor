@@ -1,5 +1,6 @@
 package com.example.backdoor.terminal
 
+import com.example.backdoor.core.SystemEvent
 import com.example.backdoor.filesystem.*
 import com.example.backdoor.i18n.StringKey
 import com.example.backdoor.i18n.StringManager
@@ -49,7 +50,6 @@ class CommandRegistry {
     private val commands = mutableMapOf<String, Command>()
 
     init {
-        // Automatically register core built-in commands
         registerCommand(HelpCommand())
         registerCommand(ManCommand())
         registerCommand(ClearCommand())
@@ -77,7 +77,6 @@ class CommandRegistry {
         registerCommand(ChmodCommand())
         registerCommand(StatCommand())
 
-        // Network Commands (AbyssNet)
         registerCommand(PingCommand())
         registerCommand(TracerouteCommand())
         registerCommand(NetstatCommand())
@@ -88,7 +87,6 @@ class CommandRegistry {
         registerCommand(WhoisCommand())
         registerCommand(RouteCommand())
 
-        // Security Framework Commands
         registerCommand(SecurityCommand())
         registerCommand(OnionCommand())
     }
@@ -159,17 +157,23 @@ class CommandExecutor(
             return CommandResult()
         }
 
-        // Expand session environment variables
         val expandedLine = context.session.expandVariables(trimmed)
         commandHistory.add(expandedLine)
 
-        // Parse command with argument parser
         val parsed = CommandParser.parse(expandedLine)
         if (parsed.commandName.isEmpty()) {
             return CommandResult()
         }
 
-        // Auto Log to /logs/terminal.log
+        // Emit gameplay event to EventBus for mission objective verification!
+        context.eventBus?.emit(
+            SystemEvent.CommandExecuted(
+                commandLine = expandedLine,
+                commandName = parsed.commandName,
+                args = parsed.positionalArgs
+            )
+        )
+
         logCommandExecution(expandedLine, context)
 
         val command = registry.getCommand(parsed.commandName)
