@@ -1,32 +1,35 @@
-# Gameplay Systems Architecture (v1.4.0)
+# Gameplay Systems Architecture (v1.5.0)
 
 ## Overview
 Backdoor combines multiple interconnected gameplay systems into a unified simulation loop.
 
 ```
-+-------------------+      +---------------------+      +---------------------+
-| AbyssOS Manager   | ---> |  SystemEventBus     | ---> |  LivingWorldEngine  |
-+-------------------+      +---------------------+      +---------------------+
-          |                           |                            |
-          v                           v                            v
-+-------------------+      +---------------------+      +---------------------+
-| WebContentEngine  | <--- | OnionNetworkEngine  | <--- | ShadowEconomyEngine |
-+-------------------+      +---------------------+      +---------------------+
++------------------------+      +---------------------+      +---------------------+
+| WorldSimulationEngine  | ---> |  SystemEventBus     | ---> |  LivingWorldEngine  |
++------------------------+      +---------------------+      +---------------------+
+            |                              |                            |
+            v                              v                            v
++------------------------+      +---------------------+      +---------------------+
+|  VulnerabilityEngine   | <--- | LawEnforcementEngine| <--- | ProceduralMissions  |
++------------------------+      +---------------------+      +---------------------+
 ```
 
 ## System Interconnections
 
-1. **Contracts Engine**:
-   - Validates player actions (port scanning, terminal commands, server breaches, file downloads) against contract objectives in real time.
+1. **Global Living AI (Milestone 1.5.0)**:
+   - `WorldSimulationEngine` runs hourly simulation ticks controlling organization departments, dynamic CVE zero-day vulnerabilities, law enforcement heat tracking, employee resignations, and corporate budget shifts.
 
-2. **Abyss Web Matrix (Milestone 1.3.0)**:
-   - Living web ecosystem that responds to player breaches and corporate security level changes by dynamically updating website press advisories, security status pages, and forum posts.
+2. **Law Enforcement & Heat**:
+   - Illegal port scans, exploit injections, data leaks, and dark market deals build Global Heat. High heat triggers active agency investigations, account flags, and darknet proxy route blocks.
 
-3. **Underground Ecosystem (Milestone 1.4.0)**:
-   - Living darknet with multiple player identities, autonomous NPC actors, PGP encrypted messaging, factions, rumor engine, and shadow exchange market.
+3. **Organization AI & Patch Management**:
+   - Security departments react to probing by activating IDS and raising firewall levels. Exploit occurrences force companies to schedule and execute software patches (`ServerPatched`).
 
-4. **Shadow Economy**:
-   - Market prices, hardware upgrades, dark market listings, and news service updates seamlessly feed into web pages, email notifications, and darknet forums.
+4. **Procedural Missions V2**:
+   - Mission contracts are dynamically generated from real world events (employee resignations, corporate data leaks, zero-day publications, red team pen testing).
 
-5. **Save & State Persistence**:
-   - `SaveManager` preserves VFS data, browser state, bookmarks, history, web content, economy, living world state, and darknet state (`darknetJson`) across sessions.
+5. **Abyss Web Matrix & Dark Layer**:
+   - Websites, forums, and darknet rumor networks continuously reflect real simulation events (press advisories, leak threads, market price shifts).
+
+6. **Save & State Persistence**:
+   - `SaveManager` preserves VFS data, browser state, darknet state, world simulation state, vulnerabilities, and law enforcement heat across sessions.

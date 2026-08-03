@@ -27,6 +27,7 @@ data class CommandContext(
     val networkEngine: com.example.backdoor.network.engine.AbyssNetworkEngine? = null,
     val eventBus: com.example.backdoor.core.SystemEventBus? = null,
     val onionEngine: com.example.backdoor.darknet.engine.OnionNetworkEngine? = null,
+    val worldSimulationEngine: com.example.backdoor.simulation.engine.WorldSimulationEngine? = null,
     val onExitRequested: () -> Unit = {},
     val onOpenAppRequested: (String) -> Unit = {}
 )

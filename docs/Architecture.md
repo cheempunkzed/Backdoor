@@ -1,44 +1,46 @@
-# AbyssOS & Backdoor System Architecture
+# Backdoor System Architecture (v1.5.0)
 
-## Overview
-Backdoor is structured as an offline-first modular OS simulation built on modern Android, Jetpack Compose, Kotlin Flow, and Clean Architecture.
+## High-Level Architecture
+Backdoor is built on an event-driven, reactive system architecture powered by Kotlin Coroutines, StateFlows, and Jetpack Compose.
 
 ```
-+-----------------------------------------------------------------+
-|                        Jetpack Compose UI                       |
-|  [DesktopScreen] [TerminalApp] [NetworkApp] [BrowserApp]        |
-+-----------------------------------------------------------------+
-                                |
-                                v
-+-----------------------------------------------------------------+
-|                       AbyssOS Kernel Manager                    |
-|  [AbyssOSManager] [ProcessManager] [WindowManager]              |
-+-----------------------------------------------------------------+
-             |                                     |
-             v                                     v
-+--------------------------+          +---------------------------+
-|    AbyssFS Subsystem     |          |    AbyssNet Subsystem     |
-| [VirtualFileSystem]      |          | [AbyssNetworkEngine]      |
-| [VfsNode] [Permissions]  |          | [InMemoryNetworkRepo]     |
-+--------------------------+          | [DomainResolver]          |
-                                      | [PacketRouter]            |
-                                      | [LatencySimulator]        |
-                                      +---------------------------+
-                                                   |
-                                                   v
-                                      +---------------------------+
-                                      |     Terminal Commands     |
-                                      | ping, traceroute, netstat,|
-                                      | ipconfig, arp, nslookup,  |
-                                      | whois, route              |
-                                      +---------------------------+
++-------------------------------------------------------------------------+
+|                              AbyssOS UI                                 |
+|   (Desktop, WindowManager, App Apps, Terminal, System Monitor App)      |
++-------------------------------------------------------------------------+
+                                    |
+                                    v
++-------------------------------------------------------------------------+
+|                          WorldSimulationEngine                          |
+|  (Master Coordinator: LivingWorldEngine, OrganizationAI, LawEnforcement)|
++-------------------------------------------------------------------------+
+         |                          |                           |
+         v                          v                           v
++------------------+     +--------------------+     +---------------------+
+| Vulnerability    |     | LawEnforcement     |     | ProceduralMission   |
+| Engine (CVEs)    |     | Engine (Heat)      |     | Generator (V2)      |
++------------------+     +--------------------+     +---------------------+
+         |                          |                           |
+         +--------------------------+---------------------------+
+                                    |
+                                    v
++-------------------------------------------------------------------------+
+|                            SystemEventBus                               |
+| (Events: ServerPatched, EmployeeResigned, HeatChanged, MissionCreated) |
++-------------------------------------------------------------------------+
+                                    |
+            +-----------------------+-----------------------+
+            |                       |                       |
+            v                       v                       v
++----------------------+  +-------------------+   +--------------------+
+| CorporateRepository  |  | OnionNetworkEngine|   | ShadowEconomyEngine|
++----------------------+  +-------------------+   +--------------------+
 ```
 
 ## Core Modules
-1. **Core Kernel (`com.example.backdoor.game`)**: Manages boot sequence, process stack, notification pipeline, system ticker, and app state.
-2. **Virtual File System (`com.example.backdoor.filesystem`)**: Hierarchical tree node model (`VfsNode`) with owner permissions and persistent JSON state.
-3. **Virtual Network Subsystem (`com.example.backdoor.network`)**: Reactive event-driven networking stack (`AbyssNetworkEngine`) handling nodes, links, DNS resolution, synthetic ping latency, and traceroute hop calculation.
-4. **Terminal Engine (`com.example.backdoor.terminal`)**: Lexical command parser, context executor, auto-complete engine, built-in POSIX/Net utilities.
-5. **Persistence (`com.example.backdoor.save`)**: Encrypted & memory fallback save manager storing user profiles, VFS states, and network topology snapshots across app reboots.
-
-- **Living Grid (v1.0.0)**: Contracts, Market, Wallet, Inventory, Mail, News.
+1. **WorldSimulationEngine**: Coordinates all living AI systems, hourly game ticks, law enforcement, dynamic vulnerabilities, and organization AI decisions.
+2. **OrganizationAI**: Departmental AI (Security, HR, IT, Finance) managing firewalls, IDS, employee stress, resignations, patching, and budget allocation.
+3. **LawEnforcementEngine**: Global Heat tracking (0-100%), agency surveillance tiers, and proxy route blocking.
+4. **VulnerabilityEngine**: Dynamic CVE vulnerability lifecycle, zero-day generation, and patch validation.
+5. **ProceduralMissionGenerator**: Context-aware mission generation based on real world simulation events.
+6. **SaveManager**: Unified JSON persistence layer preserving complete VFS, darknet, economy, and world simulation state.

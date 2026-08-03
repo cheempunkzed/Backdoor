@@ -1,18 +1,11 @@
 # Backdoor Development Roadmap
 
-## Milestone Overview
+## Project Milestones
 
-- [x] **Milestone 1: Foundation (v0.1.0)** - Core UI framework, theme engine, save state.
-- [x] **Milestone 2: AbyssOS (v0.2.0)** - Bootloader sequence, window manager, system desktop.
-- [x] **Milestone 3: Desktop Environment (v0.3.0)** - Apps launcher, status bar, dock taskbar, multi-window layout.
-- [x] **Milestone 4: AbyssFS & Terminal Core (v0.4.0)** - Virtual File System (VFS), POSIX-like permissions, shell parser, core command registry.
-- [x] **Milestone 5: ABYSSNET (v0.5.0)** - Virtual network engine, subnet topology, ICMP/TCP/UDP packet simulation, DNS resolver, network commands (`ping`, `traceroute`, `netstat`, `ipconfig`/`ifconfig`, `arp`, `nslookup`, `whois`, `route`), Network Map App, and Browser App integration.
-- [x] **Milestone 6: CORPORATE GRID (v0.6.0)** - Global corporate network infrastructure, 105 organizations across 11 industry sectors, 2500+ servers, data center facilities, hierarchical tree view, corporate website portals, system monitor integration, and JSON persistence.
-- [x] **Milestone 7: Network Security & Port Scanning (v0.7.0)** - Port scanner, exploit framework, vulnerability database, security clearance levels.
-- [x] **Milestone 8: DarkNet & Marketplace (v0.8.0)** - Encrypted onion networks, cryptomarket contracts, illegal software repositories.
-- [x] **Milestone 9: Shadow Economy (v1.0.0)** - ShadowEconomyEngine, WalletManager, Contracts, Marketplace, Mail, News, Inventory.
+- [x] **Milestone 0.9.0: Foundation Architecture (v0.9.0)** - Core virtual desktop OS interface, VFS filesystem, command engine, and window manager.
+- [x] **Milestone 1.0.0: Terminal & Security Core (v1.0.0)** - Complete terminal emulator, security framework, port scanner, vulnerability analyzer, exploit payload manager, and report generator.
 - [x] **Milestone 1.1.0: AbyssOS Hybrid Interface (v1.1.0)** - Hybrid mobile-desktop OS mode system (Fullscreen, Windowed, Minimized), mobile gesture bar, back header navigation, and contextual dock taskbar.
 - [x] **Milestone 1.2.0: Abyss Contracts Engine (v1.2.0)** - Objective-driven mission framework, event-driven task verification, `CompletionValidator`, real-time objective checklists, and mission progress persistence.
 - [x] **Milestone 1.3.0: Abyss Web Matrix (v1.3.0)** - Simulated living internet ecosystem, `WebContentEngine`, procedural entity & page generation, event-driven website updates, tabs, bookmarks with categories, history manager, darknet onion network integration, and forum/mail ecosystem.
 - [x] **Milestone 1.4.0: Underground Ecosystem (v1.4.0)** - Digital identity system, underground factions, PGP encrypted messaging, rumor engine, dark market expansion, social trust matrix, and full darknet persistence.
-- [ ] **Milestone 1.5.0: Faction Warfare & Narrative Campaign (v1.5.0)** - Faction wars, territory grid control, story campaigns, and branching narrative arcs.
+- [x] **Milestone 1.5.0: Living AI Simulation (v1.5.0)** - Master `WorldSimulationEngine`, departmental `OrganizationAI`, dynamic CVE `VulnerabilityEngine`, global `LawEnforcementEngine` heat tracking, procedural mission generator V2, and telemetry UI integration.

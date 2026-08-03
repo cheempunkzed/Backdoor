@@ -2,6 +2,19 @@
 
 All notable changes to the Backdoor project will be documented in this file.
 
+## [1.5.0] - 2026-08-03
+### Development Milestone 1.5.0: Living AI Simulation
+#### Added
+- **Global World Simulation Engine (`WorldSimulationEngine.kt`)**: Autonomous master orchestrator running background hourly ticks, coordinating `LivingWorldEngine`, `OrganizationAI`, `VulnerabilityEngine`, `LawEnforcementEngine`, and `ProceduralMissionGenerator`.
+- **Autonomous Organization AI (`OrganizationAI.kt`)**: Multi-departmental corporate AI (CEO, Security, HR, IT, Finance, Legal) that reacts dynamically to network scanning and intrusions by activating Intrusion Detection Systems (IDS), raising firewall sensitivity, scheduling software patches, managing employee stress/loyalty, and adjusting corporate budgets.
+- **Dynamic Vulnerability Engine (`VulnerabilityEngine.kt` & `Vulnerability.kt`)**: CVE-style vulnerability lifecycle system that dynamically generates zero-day security flaws (e.g., `CVE-2026-3809`), tracks exploit availability and patch status, and notifies the world via security advisories and news.
+- **Global Law Enforcement & Heat Engine (`LawEnforcementEngine.kt`)**: Real-time Heat tracking system (0-100%) with 4 alert levels (`NORMAL`, `SUSPICION`, `ACTIVE_INVESTIGATION`, `CRITICAL_RAID_RISK`), agency escalation (`Global Cyber Command`, `INTERPOL Cyber Taskforce`), and proxy route blocking.
+- **Procedural Mission Generator V2 (`ProceduralMissionGenerator.kt`)**: Real-world event-driven mission generator that spawns contracts (forensic audits, zero-day research, penetration testing, emergency hardening) directly from simulation events.
+- **Extended System Event Bus (`SystemEventBus.kt`)**: Added 9 new living AI system events: `ServerPatched`, `EmployeeResigned`, `BudgetChanged`, `CompanyMerged`, `HeatChanged`, `ForumTrending`, `NewsPublished`, `MissionCreated`, `InvestigationStarted`.
+- **Telemetry UI Integration (`SystemMonitorApp.kt`)**: Integrated interactive telemetry card displaying real-time Global Heat %, active agency, Zero-Day count, investigation severity tier, and proxy route status.
+- **Full State Serialization**: Integrated `WorldSimulationEngine` state persistence into `SaveManager` (`saveLivingWorldJson` / `getLivingWorldJson`).
+- **System Documentation**: Added and updated `/docs/WorldSimulation.md`, `/docs/OrganizationAI.md`, `/docs/EmployeeSystem.md`, `/docs/VulnerabilityEngine.md`, `/docs/LawEnforcement.md`, `/docs/Architecture.md`, `/docs/GameplaySystems.md`, and `/docs/Roadmap.md`.
+
 ## [1.4.0] - 2026-08-03
 ### Development Milestone 1.4.0: Underground Ecosystem
 #### Added

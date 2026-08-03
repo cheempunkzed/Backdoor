@@ -93,6 +93,16 @@ class AbyssOSManager(
         darknetEngine = darknetEngine,
         newsService = economyEngine.newsService
     )
+    val worldSimulationEngine = com.example.backdoor.simulation.engine.WorldSimulationEngine(
+        scope = scope,
+        eventBus = eventBus,
+        gameClock = gameClock,
+        corporateManager = corporateRepository,
+        economyEngine = economyEngine,
+        webContentEngine = webContentEngine,
+        darknetEngine = darknetEngine,
+        contractManager = economyEngine.contractManager
+    )
 
     private val _osState = MutableStateFlow(OsState.BOOTING)
     val osState: StateFlow<OsState> = _osState.asStateFlow()
@@ -166,11 +176,11 @@ class AbyssOSManager(
             
             val livingWorldJson = saveManager.getLivingWorldJson()
             if (!livingWorldJson.isNullOrEmpty()) {
-                livingWorldEngine.deserializeFromJson(livingWorldJson)
+                worldSimulationEngine.deserializeFromJson(livingWorldJson)
             } else {
-                livingWorldEngine.initWorld()
+                worldSimulationEngine.initWorld()
             }
-            livingWorldEngine.startSimulation()
+            worldSimulationEngine.startSimulation()
 
             val economyJson = saveManager.getEconomyJson()
             if (!economyJson.isNullOrEmpty()) {
@@ -245,7 +255,7 @@ class AbyssOSManager(
             while(true) {
                 delay(10000)
                 darknetEngine.tickSimulation()
-                saveManager.saveLivingWorldJson(livingWorldEngine.serializeToJson())
+                saveManager.saveLivingWorldJson(worldSimulationEngine.serializeToJson())
                 saveManager.saveEconomyJson(economyEngine.serializeToJson())
                 saveManager.saveWebContentJson(webContentEngine.serializeToJson())
                 saveManager.saveDarknetJson(darknetEngine.toJson())
@@ -515,6 +525,7 @@ class AbyssOSManager(
             networkEngine = networkEngine,
             eventBus = eventBus,
             onionEngine = darknetEngine,
+            worldSimulationEngine = worldSimulationEngine,
             onExitRequested = { closeActiveApp() },
             onOpenAppRequested = { appName ->
                 val targetApp = OsApp.entries.find { 

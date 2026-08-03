@@ -39,6 +39,17 @@ sealed class SystemEvent {
     data class MissionCompleted(val contractId: String, val title: String) : SystemEvent()
     data class MarketChanged(val description: String) : SystemEvent()
     data class PlayerReputationChanged(val newTrust: Int, val newRank: String) : SystemEvent()
+
+    // MILESTONE 1.5.0 LIVING AI EVENTS
+    data class ServerPatched(val serverId: String, val cveId: String, val companyId: String) : SystemEvent()
+    data class EmployeeResigned(val employeeId: String, val employeeName: String, val companyId: String, val reason: String) : SystemEvent()
+    data class BudgetChanged(val companyId: String, val newBudget: Double) : SystemEvent()
+    data class CompanyMerged(val parentCompanyId: String, val childCompanyId: String) : SystemEvent()
+    data class HeatChanged(val newHeat: Int, val level: String) : SystemEvent()
+    data class ForumTrending(val threadId: String, val topic: String) : SystemEvent()
+    data class NewsPublished(val articleId: String, val title: String) : SystemEvent()
+    data class MissionCreated(val contractId: String, val title: String, val issuer: String) : SystemEvent()
+    data class InvestigationStarted(val targetIdentity: String, val agency: String, val severity: Int) : SystemEvent()
 }
 
 class SystemEventBus {

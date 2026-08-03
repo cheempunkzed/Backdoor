@@ -215,6 +215,80 @@ fun SystemMonitorApp(
 
         Spacer(modifier = Modifier.height(8.dp))
 
+        // LIVING AI & LAW ENFORCEMENT TELEMETRY CARD
+        val lawEnforcementState by osManager.worldSimulationEngine.lawEnforcementEngine.state.collectAsState()
+        val activeVulns by osManager.worldSimulationEngine.vulnerabilityEngine.activeVulnerabilities.collectAsState()
+        val heatPercent = (lawEnforcementState.globalHeat / 100.0f).coerceIn(0f, 1f)
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(6.dp))
+                .background(AbyssCard)
+                .border(0.5.dp, if (lawEnforcementState.globalHeat > 50f) NeonRed.copy(alpha = 0.8f) else CyberCyan.copy(alpha = 0.5f), RoundedCornerShape(6.dp))
+                .padding(10.dp)
+        ) {
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "GLOBAL SIMULATION & LAW ENFORCEMENT",
+                        color = if (lawEnforcementState.globalHeat > 50f) NeonRed else CyberCyan,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace
+                    )
+                    Text(
+                        text = lawEnforcementState.heatLevel.title.uppercase(),
+                        color = if (lawEnforcementState.globalHeat > 50f) NeonRed else TerminalGreen,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace
+                    )
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Global Heat: ${lawEnforcementState.globalHeat.toInt()}%",
+                        color = TextPrimary,
+                        fontSize = 10.sp,
+                        fontFamily = FontFamily.Monospace,
+                        modifier = Modifier.width(110.dp)
+                    )
+                    LinearProgressIndicator(
+                        progress = { heatPercent },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(6.dp)
+                            .clip(RoundedCornerShape(3.dp)),
+                        color = if (lawEnforcementState.globalHeat > 50f) NeonRed else CyberCyan,
+                        trackColor = AbyssSurface
+                    )
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text("Agency: ${lawEnforcementState.activeAgency}", color = TextPrimary, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
+                        Text("Active Zero-Days: ${activeVulns.count { it.patchStatus != com.example.backdoor.simulation.models.PatchStatus.PATCHED }}", color = CyberCyan, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text("Investigation Severity: Tier ${lawEnforcementState.investigationSeverity}", color = if (lawEnforcementState.investigationSeverity > 2) NeonRed else StatusConnected, fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                        Text("Proxy Route Status: ${if (lawEnforcementState.isProxyRouteBlocked) "BLOCKED" else "NORMAL"}", color = if (lawEnforcementState.isProxyRouteBlocked) NeonRed else TextMuted, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
         // Security Framework Telemetry Card
         val secTasks by osManager.securityFramework.activeTasks.collectAsState()
         val secReports by osManager.securityFramework.completedReports.collectAsState()
